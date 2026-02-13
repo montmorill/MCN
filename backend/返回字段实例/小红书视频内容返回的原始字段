@@ -1,0 +1,67 @@
+{
+    "code": 200,
+    "data": {
+        "api_source": "layzz",
+        "info": {
+            "audio": {
+                "cover_url": "https://cdn.xiaoxiaobite.com/watermark/app/imgs/audio_default_cover.png",
+                "is_video_convert_audio": true,
+                "notice": "",
+                "save_file_format": "",
+                "source_url": "https://sns-video-hw.xhscdn.com/stream/1/110/258/01e98dbfd4b781c2010370019c51b75c18_258.mp4",
+                "title": "音频下载"
+            },
+            "cover": {
+                "notice": "",
+                "source_url": "https://sns-webpic.xhscdn.com/1040g00831sg3qvn95s005nt4s8908numm3vkhno?imageView2/2/w/0/format/jpg",
+                "title": "高清封面"
+            },
+            "text": {
+                "notice": "",
+                "text": "2个月帮你从草根创业者成为正规军CEO",
+                "title": "文案提取"
+            },
+            "video": {
+                "cover_url": "https://sns-webpic.xhscdn.com/1040g00831sg3qvn95s005nt4s8908numm3vkhno?imageView2/2/w/0/format/jpg",
+                "force_transcode_flag": 0,
+                "is_auto_transcode": false,
+                "notice": "",
+                "ori_url": "https://www.xiaohongshu.com/discovery/item/698dbfd5000000001b01de78?source=webshare&xhsshare=pc_web&xsec_token=ABwM_-AmdreB9EIhdOI6PQYxMbCEiv1b8yp_AdfnubtZQ=&xsec_source=pc_share",
+                "save_file_format": "",
+                "source_url": "https://sns-video-hw.xhscdn.com/stream/1/110/258/01e98dbfd4b781c2010370019c51b75c18_258.mp4",
+                "title": "视频下载",
+                "video_fps_list": []
+            }
+        },
+        "platform_type": "www.xiaohongshu.com",
+        "sniff_info": {
+            "is_can_sniff": false
+        },
+        "status": true
+    },
+    "user_info": {
+        "user_code": 8741739,
+        "idfa": "A7CE4A25-8C36-4EA4-B053-2A7BB980099F",
+        "credits": 0,
+        "platform": "ios",
+        "channel_id": "mob_65l2qelrkpb1hxk",
+        "app": "longmao",
+        "create_time": 1738426322,
+        "vip_start_time": 1770548981,
+        "vip_end_time": 1771182540,
+        "vip_product_type": "week_continue",
+        "udid": "49fb9bb6-608c-4c52-b67c-6ba08becf85b",
+        "vip_purchase_type": "RENEWAL",
+        "remark": null,
+        "risk_level": 0,
+        "update_time": 1770923568,
+        "invite_code": null,
+        "high_level_invite_code": null,
+        "is_vip": true,
+        "vip_status": 1,
+        "vip_des": "会员权益生效中",
+        "nick_name": "脾酪氨酸激酶",
+        "head_image_url": "https://thirdwx.qlogo.cn/mmopen/vi_32/I3uKiavrmxXDkEndKO6NcatB0N9lldIFiazfWUWSEzOxqHbQye8oSVudozXNvwkhplx2hcrBgHcfLrSuhCPz1YXeHPt4ymID4HsyoRGETQic2Y/132"
+    },
+    "time": 1770928227
+}

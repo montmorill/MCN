@@ -1,0 +1,59 @@
+{
+  "code": 200,
+  "data": {
+    "api_source": "layzz",
+    "info": {
+      "album": {
+        "notice": "",
+        "source_list": [
+          "https://sns-webpic.xhscdn.com/notes_pre_post/1040g3k031rnp2psm2m005q6fsi48bifvs9glhig?imageView2/2/w/0/format/jpg/v3&c=v1",
+          "https://sns-webpic.xhscdn.com/notes_pre_post/1040g3k831rovg7c9iscg5q6fsi48bifvpnp807g?imageView2/2/w/0/format/jpg/v3&c=v1",
+          "https://sns-webpic.xhscdn.com/notes_pre_post/1040g3k831rovg7c9isdg5q6fsi48bifvck3rk3o?imageView2/2/w/0/format/jpg/v3&c=v1",
+          "https://sns-webpic.xhscdn.com/notes_pre_post/1040g3k831rovg7au2sdg5q6fsi48bifv5clqb2g?imageView2/2/w/0/format/jpg/v3&c=v1",
+          "https://sns-webpic.xhscdn.com/notes_pre_post/1040g3k831rovg7bmigdg5q6fsi48bifvushc4qg?imageView2/2/w/0/format/jpg/v3&c=v1"
+        ],
+        "title": "高清图集"
+      },
+      "cover": {
+        "notice": "",
+        "source_url": "https://sns-webpic.xhscdn.com/notes_pre_post/1040g3k031rnp2psm2m005q6fsi48bifvs9glhig?imageView2/2/w/0/format/jpg/v3&c=v1",
+        "title": "高清封面"
+      },
+      "text": {
+        "notice": "",
+        "text": "最近 pencil真的太火了，完全打破了 设计 和 研发的次元壁\n\t\n期待后面的迭代\n\t\n#pencil[话题]# #设计系统[话题]# #vibecoding[话题]# #独立开发[话题]# #ai[话题]#",
+        "title": "文案提取"
+      }
+    },
+    "platform_type": "www.xiaohongshu.com",
+    "sniff_info": {
+      "is_can_sniff": false
+    },
+    "status": true
+  },
+  "user_info": {
+    "user_code": 8741739,
+    "idfa": "A7CE4A25-8C36-4EA4-B053-2A7BB980099F",
+    "credits": 0,
+    "platform": "ios",
+    "channel_id": "mob_65l2qelrkpb1hxk",
+    "app": "longmao",
+    "create_time": 1738426322,
+    "vip_start_time": 1770548981,
+    "vip_end_time": 1771182540,
+    "vip_product_type": "week_continue",
+    "udid": "49fb9bb6-608c-4c52-b67c-6ba08becf85b",
+    "vip_purchase_type": "RENEWAL",
+    "remark": null,
+    "risk_level": 0,
+    "update_time": 1770923568,
+    "invite_code": null,
+    "high_level_invite_code": null,
+    "is_vip": true,
+    "vip_status": 1,
+    "vip_des": "会员权益生效中",
+    "nick_name": "脾酪氨酸激酶",
+    "head_image_url": "https://thirdwx.qlogo.cn/mmopen/vi_32/I3uKiavrmxXDkEndKO6NcatB0N9lldIFiazfWUWSEzOxqHbQye8oSVudozXNvwkhplx2hcrBgHcfLrSuhCPz1YXeHPt4ymID4HsyoRGETQic2Y/132"
+  },
+  "time": 1770929585
+}

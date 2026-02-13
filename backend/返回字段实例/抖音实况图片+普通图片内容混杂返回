@@ -1,0 +1,88 @@
+
+{
+  "code": 200,
+  "data": {
+    "api_source": "layzz",
+    "info": {
+      "album": {
+        "notice": "",
+        "source_list": [
+          "https://p3-sign.douyinpic.com/tos-cn-p-0015c000-ce/owsIZiSPjYlXihDBIhaiPPMxEFyAq70GmAPA5~tplv-dy-vqe2-v2:1920:1080:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=nshkdZVOx6wWx6iraAyj6%2FKCn1Q%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/owxv6aANcIBIPMpTaACLpilyWAiYmiEaAilAv~tplv-dy-vqe2-v2:1920:1080:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=uqfB%2FJ8tOcZhleE%2FVxWoVIkzC9E%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/owNXJcLAMiPAlBxKCAaTMIiypaiiIpYAEm4Av~tplv-dy-vqe2-v2:1920:1080:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=0E2DK1kAHD0s0bBkCD%2Bazm%2B38Pw%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/owA3lAPYMcxYapAiACIpEIKYA4vmTLiiNyBia~tplv-dy-vqe2-v2:1440:2158:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=QeEztQIepApJscrSTebBCRsljkg%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/ooaE5AIPipIcALAxlTimCyiaKiAAZ6NpMvbBY~tplv-dy-vqe2-v2:1440:1920:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=OH%2BhisEBdTBeZ8TcCIC4MKl%2FBfg%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p11-sign.douyinpic.com/tos-cn-i-0813c000-ce/oYLYaIAATcnpCIABmiPvAilyixM32NA4apiaE~tplv-dy-vqe2-v2:1440:1920:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=9Ue%2FzrX1JGbdLAs2YAJMulppGBA%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/o8TNFAA2pEEhemKRCkFEwoDuAiA9IwAQIbf4nJ~tplv-dy-vqe2-v2:1440:2818:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=e3BxDcf51%2FrO%2FLJpNqtywxLPFAU%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/o8fEAopQRTmDaCKNwunFJfEdFAA9EAikz44bAI~tplv-dy-vqe2-v2:1440:1920:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=FjtiiUybZ%2Boxz%2FTGrLeCtCYKriw%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/oIyLYxpAPETciBNAACanAIlIpMvAaTaid4imi~tplv-dy-vqe2-v2:1440:1920:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=G0HLn2%2FWCCP7D6LzeueeFp90NnE%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p11-sign.douyinpic.com/tos-cn-i-0813c000-ce/oUI4mA8A9IbAin4fkCEATKDpA9eFEEuJCwuomi~tplv-dy-vqe2-v2:1440:2560:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=ddF5YcVGpdhK18NIvO%2FR1oFkiwQ%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p26-sign.douyinpic.com/tos-cn-i-0813c000-ce/ocZEj7wgniAOWAI0AUA4ImEIf0AC9CEn8B1exi~tplv-dy-vqe2-v2:1440:2560:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=oGeFXXhDR8ozHv2yQKsZwtSceLk%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p26-sign.douyinpic.com/tos-cn-i-0813c000-ce/o4XrfABxVmCEjien0W8Z0AnAwEQICIOIAA1Ei7~tplv-dy-vqe2-v2:1440:1918:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=Ffn4DyDqoERudX%2Bltg8S%2F707t20%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p11-sign.douyinpic.com/tos-cn-i-0813c000-ce/o4E9DEwPIspA3RAGQCRA4nFARissNEfJqeAaoz~tplv-dy-vqe2-v2:1440:1920:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=ZpPK2iGLpYavbeq4EMJfQvqSaKk%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+          "https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/osAA8MiIEEw0ZaxfIminIMC7Xj0nqAAWBCEeA1~tplv-dy-vqe2-v2:1440:1920:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=qp6FWmaGFQy2uooLxmtYxz6dwiQ%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC"
+        ],
+        "title": "高清图集"
+      },
+      "cover": {
+        "notice": "",
+        "source_url": "https://p3-sign.douyinpic.com/tos-cn-p-0015c000-ce/owsIZiSPjYlXihDBIhaiPPMxEFyAq70GmAPA5~tplv-dy-vqe2-v2:1920:1080:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=nshkdZVOx6wWx6iraAyj6%2FKCn1Q%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+        "title": "高清封面"
+      },
+      "text": {
+        "notice": "",
+        "text": "再不用我就18了#08 #萌妹子 #女高中生",
+        "title": "文案提取"
+      },
+      "work": {
+        "category": "work",
+        "cursor_info": {},
+        "list": [
+          {
+            "comment_count": 0,
+            "cover": "https://p3-sign.douyinpic.com/tos-cn-p-0015c000-ce/owsIZiSPjYlXihDBIhaiPPMxEFyAq70GmAPA5~tplv-dy-vqe2-v2:1920:1080:q80.jpeg?lk3s=138a59ce&x-expires=1773522000&x-signature=nshkdZVOx6wWx6iraAyj6%2FKCn1Q%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=20260213052457F77EB66E18D92EA9E9BC",
+            "create_time": 0,
+            "duration": 0,
+            "image_list": [],
+            "like_count": 0,
+            "share_count": 0,
+            "uid": "1770931497551.4421",
+            "video_url": "https://v11-cold.douyinvod.com/fb285bca081640c7376e09737e3b0db8/698e533e/video/tos/cn/tos-cn-ve-15c000-ce/ocCiAXEDyLA5ZmMhQIYqxlukPsivih7B0IaPi/?a=1128&ch=26&cr=13&dr=0&lr=all&cd=0%7C0%7C0%7C&br=3393&bt=3393&cs=0&ds=3&ft=8ILtMUUmf.7daD0PD1YBaUA-fmGs9fKgiZcnRkaJ0XURejVhWJ6&mime_type=video_mp4&qs=0&rc=ZDg3ZjVpaGZmZGk0OzZnZkBpMzZtc2w5cms8OTMzbGkzNEAxXmMwX19eXzUxLmJgY2A0YSNuZmFxMmQ0ZzFhLS1kLWJzcw%3D%3D&btag=c0010e0008d008&cdn_type=2&cquery=100b&dy_q=1770931497&feature_id=fea919893f650a8c49286568590446ef&l=20260213052457F77EB66E18D92EA9E9BC&pwid=280&req_cdn_type=r"
+          }
+        ],
+        "platform_type": "",
+        "title": "多视频下载"
+      }
+    },
+    "platform_type": "douyin",
+    "sniff_info": {
+      "is_can_sniff": false
+    },
+    "status": true
+  },
+  "user_info": {
+    "user_code": 8741739,
+    "idfa": "A7CE4A25-8C36-4EA4-B053-2A7BB980099F",
+    "credits": 0,
+    "platform": "ios",
+    "channel_id": "mob_65l2qelrkpb1hxk",
+    "app": "longmao",
+    "create_time": 1738426322,
+    "vip_start_time": 1770548981,
+    "vip_end_time": 1771182540,
+    "vip_product_type": "week_continue",
+    "udid": "49fb9bb6-608c-4c52-b67c-6ba08becf85b",
+    "vip_purchase_type": "RENEWAL",
+    "remark": null,
+    "risk_level": 0,
+    "update_time": 1770930773,
+    "invite_code": null,
+    "high_level_invite_code": null,
+    "is_vip": true,
+    "vip_status": 1,
+    "vip_des": "会员权益生效中",
+    "nick_name": "脾酪氨酸激酶",
+    "head_image_url": "https://thirdwx.qlogo.cn/mmopen/vi_32/I3uKiavrmxXDkEndKO6NcatB0N9lldIFiazfWUWSEzOxqHbQye8oSVudozXNvwkhplx2hcrBgHcfLrSuhCPz1YXeHPt4ymID4HsyoRGETQic2Y/132"
+  },
+  "time": 1770931497
+}

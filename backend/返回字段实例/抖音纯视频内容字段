@@ -1,0 +1,32 @@
+{
+    "audio": {
+        "cover_url": "https://cdn.xiaoxiaobite.com/watermark/app/imgs/audio_default_cover.png",
+        "is_video_convert_audio": false,
+        "notice": "",
+        "save_file_format": "",
+        "source_url": "https://sf5-hl-cdn-tos.douyinstatic.com/obj/ies-music/7602467796634569535.mp3",
+        "title": "音频下载"
+    },
+    "cover": {
+        "notice": "",
+        "source_url": "https://p95-bj-sign.douyinpic.com/tos-cn-i-dy/53fc69b5bd7d41e8930ed6198f567292~tplv-dy-resize-walign-adapt-aq:540:q75.jpeg?lk3s=138a59ce&x-expires=1771952400&x-signature=M2bPlKwtSck0JEXQ03iHR5xoQvo%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=cover&biz_tag=aweme_video&l=20260211012705FCB023EE54A853A4732F",
+        "title": "高清封面"
+    },
+    "text": {
+        "notice": "",
+        "text": "画面血腥、台词封建、剧情割裂，太平年刚上架就遭举报！ #太平年 #影视幕后",
+        "title": "文案提取"
+    },
+    "video": {
+        "audio_url": "https://sf5-hl-cdn-tos.douyinstatic.com/obj/ies-music/7602467796634569535.mp3",
+        "cover_url": "https://p95-bj-sign.douyinpic.com/tos-cn-i-dy/53fc69b5bd7d41e8930ed6198f567292~tplv-dy-resize-walign-adapt-aq:540:q75.jpeg?lk3s=138a59ce&x-expires=1771952400&x-signature=M2bPlKwtSck0JEXQ03iHR5xoQvo%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=cover&biz_tag=aweme_video&l=20260211012705FCB023EE54A853A4732F",
+        "force_transcode_flag": 0,
+        "is_auto_transcode": false,
+        "notice": "",
+        "ori_url": "https://v.douyin.com/OigEv5Sr-s0/",
+        "save_file_format": "",
+        "source_url": "https://v26-default.365yg.com/8351eba728586a2cb4001b7846f7478c/698b797e/video/tos/cn/tos-cn-ve-15/ff8e9e62fbea49ff8004081631f3dc60/?a=2011&ch=0&cr=0&dr=0&er=0&lr=unwatermarked&net=5&cd=0%7C0%7C0%7C0&cv=1&br=1513&bt=1513&cs=0&ds=4&ft=aT_7TQQqUuIf_oZmo0OW_QYaUqiXeFskkVJEiK4rKbPD-Ipz&mime_type=video_mp4&qs=0&rc=Zzk2OjxoZjM2OztkOjRpO0BpM3l4dHc5cjdwOTMzNGkzM0A0LTRjNGE1X14xLTYuMzU1YSNsc2JqMmRzMi1hLS1kLWFzcw%3D%3D&btag=80000e00030000&dy_q=1770744425&feature_id=0ea98fd3bdc3c6c14a3d0804cc272721&l=20260211012705B1467A8742FABC30681C",
+        "title": "视频下载",
+        "video_fps_list": []
+    }
+}

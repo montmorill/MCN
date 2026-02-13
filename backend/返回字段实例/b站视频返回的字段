@@ -1,0 +1,68 @@
+✅ 服务器返回结果：
+{
+    "code": 200,
+    "data": {
+        "api_source": "layzz",
+        "info": {
+            "audio": {
+                "cover_url": "https://cdn.xiaoxiaobite.com/watermark/app/imgs/audio_default_cover.png",
+                "is_video_convert_audio": true,
+                "notice": "",
+                "save_file_format": "",
+                "source_url": "https://upos-sz-mirrorcos.bilivideo.com/upgcxcode/61/25/215662561/215662561-1-208.mp4?e=ig8euxZM2rNcNbRVhwdVhwdlhWdVhwdVhoNvNC8BqJIzNbfq9rVEuxTEnE8L5F6VnEsSTx0vkX8fqJeYTj_lta53NCM=&nbs=1&uipk=5&platform=html5&mid=0&deadline=1770749860&gen=playurlv3&os=bdbv&oi=143446004&trid=0bfedecccc6549bd818d2eca1649e78O&og=hw&upsig=9dcf5771ff8fb664361522ba115731ad&uparams=e,nbs,uipk,platform,mid,deadline,gen,os,oi,trid,og&bvc=vod&nettype=1&bw=538507&f=O_0_0&agrr=0&buvid=&build=7330300&dl=0&orderid=0,3",
+                "title": "音频下载"
+            },
+            "cover": {
+                "notice": "",
+                "source_url": "http://i2.hdslb.com/bfs/archive/f1611b23f2436b4701980e588aa89e7e44e2b58f.jpg",
+                "title": "高清封面"
+            },
+            "text": {
+                "notice": "",
+                "text": "【李自然说】【商业计划书4】BP写作实战，如何描述路线图/融资需求/资金使用计划",
+                "title": "文案提取"
+            },
+            "video": {
+                "cover_url": "http://i2.hdslb.com/bfs/archive/f1611b23f2436b4701980e588aa89e7e44e2b58f.jpg",
+                "force_transcode_flag": 0,
+                "is_auto_transcode": false,
+                "notice": "龙猫插件版，支持4K、1080P视频，还支持主页批量下载，请在官网【longmao.vip】下载使用！",
+                "ori_url": "https://www.bilibili.com/video/BV1o54y1U713?spm_id_from=333.788.videopod.sections&vd_source=4d0499d0e34533591687201f4a622cba",
+                "save_file_format": "",
+                "source_url": "https://upos-sz-mirrorcos.bilivideo.com/upgcxcode/61/25/215662561/215662561-1-208.mp4?e=ig8euxZM2rNcNbRVhwdVhwdlhWdVhwdVhoNvNC8BqJIzNbfq9rVEuxTEnE8L5F6VnEsSTx0vkX8fqJeYTj_lta53NCM=&nbs=1&uipk=5&platform=html5&mid=0&deadline=1770749860&gen=playurlv3&os=bdbv&oi=143446004&trid=0bfedecccc6549bd818d2eca1649e78O&og=hw&upsig=9dcf5771ff8fb664361522ba115731ad&uparams=e,nbs,uipk,platform,mid,deadline,gen,os,oi,trid,og&bvc=vod&nettype=1&bw=538507&f=O_0_0&agrr=0&buvid=&build=7330300&dl=0&orderid=0,3",
+                "title": "视频下载",
+                "video_fps_list": []
+            }
+        },
+        "platform_type": "bilibili",
+        "sniff_info": {
+            "is_can_sniff": false
+        },
+        "status": true
+    },
+    "user_info": {
+        "user_code": 8741739,
+        "idfa": "A7CE4A25-8C36-4EA4-B053-2A7BB980099F",
+        "credits": 0,
+        "platform": "ios",
+        "channel_id": "mob_65l2qelrkpb1hxk",
+        "app": "longmao",
+        "create_time": 1738426322,
+        "vip_start_time": 1770548981,
+        "vip_end_time": 1771182540,
+        "vip_product_type": "week_continue",
+        "udid": "49fb9bb6-608c-4c52-b67c-6ba08becf85b",
+        "vip_purchase_type": "RENEWAL",
+        "remark": null,
+        "risk_level": 0,
+        "update_time": 1770739195,
+        "invite_code": null,
+        "high_level_invite_code": null,
+        "is_vip": true,
+        "vip_status": 1,
+        "vip_des": "会员权益生效中",
+        "nick_name": "脾酪氨酸激酶",
+        "head_image_url": "https://thirdwx.qlogo.cn/mmopen/vi_32/I3uKiavrmxXDkEndKO6NcatB0N9lldIFiazfWUWSEzOxqHbQye8oSVudozXNvwkhplx2hcrBgHcfLrSuhCPz1YXeHPt4ymID4HsyoRGETQic2Y/132"
+    },
+    "time": 1770742661
+}
