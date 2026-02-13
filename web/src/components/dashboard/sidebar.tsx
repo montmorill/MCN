@@ -35,13 +35,10 @@ import {
   ChevronsUpDown,
   Cloud,
   Folder,
-  Globe,
   LogOut,
   PanelLeftIcon,
   Plus,
   Radar,
-  Rss,
-  ScanSearch,
   Send,
   Settings,
   Shield,
@@ -54,31 +51,29 @@ type DashboardSidebarProps = React.ComponentProps<typeof Sidebar>
 
 const navItems = [
   { title: "任务发布", icon: Send, href: "/task-publish" },
-  { title: "内容采集", icon: ScanSearch },
   { title: "素材管理", icon: Folder, href: "/materials" },
-  { title: "发布管理", icon: Send },
-  { title: "账号管理", icon: Users },
+  { title: "账号管理", icon: Users, href: "/accounts" },
   { title: "数据监控", icon: BarChart3 },
 ]
 
 const sourceGroups = [
   {
-    id: "domestic-platforms",
-    name: "国内平台",
-    icon: Globe,
-    children: [
-      { id: "bilibili", name: "Bilibili", icon: Rss },
-      { id: "douyin", name: "Douyin", icon: Rss },
-      { id: "xiaohongshu", name: "Xiaohongshu", icon: Rss },
-    ],
-  },
-  {
     id: "proxy-pools",
     name: "代理池",
     icon: Shield,
     children: [
-      { id: "publish-proxy", name: "发布代理池", icon: Cloud },
-      { id: "monitor-proxy", name: "监控代理池", icon: Radar },
+      {
+        id: "publish-proxy",
+        name: "发布代理池",
+        icon: Cloud,
+        href: "/proxy-pools/publish",
+      },
+      {
+        id: "monitor-proxy",
+        name: "监控代理池",
+        icon: Radar,
+        href: "/proxy-pools/monitor",
+      },
     ],
   },
 ]
@@ -87,7 +82,6 @@ export function DashboardSidebar({ ...props }: DashboardSidebarProps) {
   const { toggleSidebar } = useSidebar()
   const location = useLocation()
   const [expandedItems, setExpandedItems] = React.useState<string[]>([
-    "domestic-platforms",
     "proxy-pools",
   ])
 
@@ -229,10 +223,23 @@ export function DashboardSidebar({ ...props }: DashboardSidebarProps) {
                         <SidebarMenuSub className="mr-0 pr-0">
                           {item.children.map((child) => (
                             <SidebarMenuSubItem key={child.id}>
-                              <SidebarMenuButton className="h-7 text-sm pl-6">
-                                <child.icon className="size-3.5" />
-                                <span>{child.name}</span>
-                              </SidebarMenuButton>
+                              {"href" in child && child.href ? (
+                                <SidebarMenuButton
+                                  asChild
+                                  isActive={location.pathname === child.href}
+                                  className="h-7 text-sm pl-6"
+                                >
+                                  <NavLink to={child.href}>
+                                    <child.icon className="size-3.5" />
+                                    <span>{child.name}</span>
+                                  </NavLink>
+                                </SidebarMenuButton>
+                              ) : (
+                                <SidebarMenuButton className="h-7 text-sm pl-6">
+                                  <child.icon className="size-3.5" />
+                                  <span>{child.name}</span>
+                                </SidebarMenuButton>
+                              )}
                             </SidebarMenuSubItem>
                           ))}
                         </SidebarMenuSub>

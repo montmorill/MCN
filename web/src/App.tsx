@@ -4,6 +4,9 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { Navigate, Route, Routes } from "react-router-dom"
 import { MaterialManagementPage } from "@/pages/material-management-page"
 import { TaskPublishPage } from "@/pages/task-publish-page"
+import { AccountManagementPage } from "@/pages/account-management-page"
+import { PublishProxyPoolPage } from "@/pages/publish-proxy-pool-page"
+import { MonitorProxyPoolPage } from "@/pages/monitor-proxy-pool-page"
 
 function App() {
   const frameTheme = {
@@ -25,6 +28,9 @@ function App() {
               <Route path="/" element={<Navigate to="/task-publish" replace />} />
               <Route path="/task-publish" element={<TaskPublishPage />} />
               <Route path="/materials" element={<MaterialManagementPage />} />
+              <Route path="/accounts" element={<AccountManagementPage />} />
+              <Route path="/proxy-pools/publish" element={<PublishProxyPoolPage />} />
+              <Route path="/proxy-pools/monitor" element={<MonitorProxyPoolPage />} />
               <Route path="*" element={<Navigate to="/task-publish" replace />} />
             </Routes>
           </div>
