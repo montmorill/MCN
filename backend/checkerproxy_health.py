@@ -16,7 +16,7 @@ DEFAULT_USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/144.0.0.0 Safari/537.36"
 )
-DEFAULT_SERVICES = ("google", "facebook", "tiktok", "twitter")
+DEFAULT_SERVICES = ("google", "facebook", "tiktok", "twitter", "chatgpt", "claude")
 DEFAULT_CHECK_TYPE = "soft"
 
 
@@ -124,20 +124,64 @@ def _parse_checker_item(item: dict[str, Any], target_dsn: str) -> dict[str, Any]
         if target_endpoint and current_endpoint and target_endpoint != current_endpoint:
             return None
 
+    # --- 顶层 is_alive=False → 直接判定死代理 ---
+    if item.get("is_alive") is False:
+        err_text = str(item.get("err") or "代理无响应 (is_alive=false)").strip()
+        return {
+            "dsn": dsn, "protocol_layer": None, "real_ip": None,
+            "latency_seconds": None, "latency_ms": None, "score": 0,
+            "proxy_type": None, "country": None, "region": None, "city": None,
+            "services": [], "is_dead": True, "error": err_text,
+        }
+
+    # --- 顶层 err 字段 ---
+    top_err = item.get("err")
+    if top_err and str(top_err).strip():
+        return {
+            "dsn": dsn, "protocol_layer": None, "real_ip": None,
+            "latency_seconds": None, "latency_ms": None, "score": 0,
+            "proxy_type": None, "country": None, "region": None, "city": None,
+            "services": [], "is_dead": True, "error": str(top_err).strip(),
+        }
+
+    # --- 协议层解析（和脚本一致：优先 http，再 socks） ---
     protocol_layer = "http" if isinstance(item.get("http"), dict) else "socks"
     protocol_data = item.get("http") or item.get("socks") or {}
-    if not isinstance(protocol_data, dict):
-        return None
-    if not protocol_data:
+    if not isinstance(protocol_data, dict) or not protocol_data:
         return None
 
+    # --- 关键：脚本用 protocol_data["s"] 判断存活，"s"=false 代表连接失败 ---
+    is_alive = protocol_data.get("s", False)
+
+    if not is_alive:
+        # 代理挂了，从 protocol_data 取 err
+        error_msg = str(protocol_data.get("err") or "未知错误").strip()
+        return {
+            "dsn": dsn, "protocol_layer": protocol_layer, "real_ip": None,
+            "latency_seconds": None, "latency_ms": None, "score": 0,
+            "proxy_type": None, "country": None, "region": None, "city": None,
+            "services": [], "is_dead": True, "error": error_msg,
+        }
+
+    # --- 代理活着，提取 IP ---
+    real_ip = str(protocol_data.get("ip") or "").strip()
+    if not real_ip:
+        # IP 还没出来，中间状态，跳过
+        return None
+
+    latency_seconds = _to_float(protocol_data.get("t"))
+    latency_ms = None if latency_seconds is None else int(round(latency_seconds * 1000))
+
+    # --- 地理位置详情 ---
     details = protocol_data.get("d") if isinstance(protocol_data.get("d"), dict) else {}
+
+    # --- services 解析 ---
     services_wrapper = item.get("s")
-    services_raw = (
-        services_wrapper.get("l")
-        if isinstance(services_wrapper, dict) and isinstance(services_wrapper.get("l"), list)
-        else []
-    )
+    services_raw: list[Any] = []
+    if isinstance(services_wrapper, dict):
+        raw_list = services_wrapper.get("l")
+        if isinstance(raw_list, list):
+            services_raw = raw_list
 
     parsed_services: list[dict[str, Any]] = []
     for service in services_raw:
@@ -151,12 +195,12 @@ def _parse_checker_item(item: dict[str, Any], target_dsn: str) -> dict[str, Any]
             }
         )
 
-    latency_seconds = _to_float(protocol_data.get("t"))
-    latency_ms = None if latency_seconds is None else int(round(latency_seconds * 1000))
-
-    score = item.get("sc")
-    if score is None and isinstance(services_wrapper, dict):
+    # --- 评分：优先从 s.sc 取，再从顶层 sc 取 ---
+    score = None
+    if isinstance(services_wrapper, dict):
         score = services_wrapper.get("sc")
+    if score is None:
+        score = item.get("sc")
     score_value = _to_float(score)
     score_output: int | float | None
     if score_value is None:
@@ -169,19 +213,28 @@ def _parse_checker_item(item: dict[str, Any], target_dsn: str) -> dict[str, Any]
     return {
         "dsn": dsn,
         "protocol_layer": protocol_layer,
-        "real_ip": str(protocol_data.get("ip") or "").strip() or None,
+        "real_ip": real_ip,
         "latency_seconds": latency_seconds,
         "latency_ms": latency_ms,
         "score": score_output,
-        "proxy_type": str(details.get("t") or "").strip() or None,
-        "country": str(details.get("c") or "").strip() or None,
-        "region": str(details.get("r") or "").strip() or None,
-        "city": str(details.get("ct") or "").strip() or None,
+        "proxy_type": str((details or {}).get("t") or "").strip() or None,
+        "country": str((details or {}).get("c") or "").strip() or None,
+        "region": str((details or {}).get("r") or "").strip() or None,
+        "city": str((details or {}).get("ct") or "").strip() or None,
         "services": parsed_services,
+        "is_dead": False,
+        "error": None,
     }
 
 
 def _merge_result(current: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
+    # 如果 incoming 是死代理/错误，直接覆盖
+    if incoming.get("is_dead"):
+        merged = dict(incoming)
+        if "services" not in merged:
+            merged["services"] = []
+        return merged
+
     merged = dict(current)
     for key in (
         "dsn",
@@ -194,10 +247,16 @@ def _merge_result(current: dict[str, Any], incoming: dict[str, Any]) -> dict[str
         "country",
         "region",
         "city",
+        "error",
     ):
         value = incoming.get(key)
         if value is not None:
             merged[key] = value
+    # is_dead: 只有 incoming 明确为 True 才覆盖
+    if incoming.get("is_dead") is True:
+        merged["is_dead"] = True
+    elif "is_dead" not in merged:
+        merged["is_dead"] = False
     incoming_services = incoming.get("services")
     if isinstance(incoming_services, list) and incoming_services:
         merged["services"] = incoming_services
@@ -207,6 +266,9 @@ def _merge_result(current: dict[str, Any], incoming: dict[str, Any]) -> dict[str
 
 
 def _determine_status(merged: dict[str, Any]) -> str:
+    # 死代理（is_alive=false 或 err）
+    if merged.get("is_dead"):
+        return "dead"
     if not merged.get("real_ip"):
         return "dead"
     latency_ms = _to_int(merged.get("latency_ms"))
@@ -345,12 +407,22 @@ async def _run_checkerproxy_health_check(
                         if first_result_at is None:
                             first_result_at = time.monotonic()
 
+                    # 死代理/错误 → 立即结束
+                    if merged.get("is_dead"):
+                        break
+
                     if first_result_at is not None:
-                        has_services = bool(merged.get("services"))
                         elapsed = time.monotonic() - first_result_at
-                        if has_services and elapsed >= 2:
+                        has_services = bool(merged.get("services"))
+                        has_ip = bool(merged.get("real_ip"))
+                        # 有 IP + services → 额外等 5 秒收全推送
+                        if has_ip and has_services and elapsed >= 5:
                             break
-                        if elapsed >= 12:
+                        # 有 IP 但没 services → 最多等 15 秒
+                        if has_ip and elapsed >= 15:
+                            break
+                        # 兜底超时
+                        if elapsed >= 20:
                             break
                 elif msg.type in (
                     aiohttp.WSMsgType.CLOSE,
@@ -395,6 +467,31 @@ async def _run_checkerproxy_health_check(
             "submit_http_status": submit_http_status,
             "submit_response_preview": submit_body_preview,
             "services": [],
+            "error": None,
+        }
+
+    # 死代理/错误快速返回
+    if merged.get("is_dead"):
+        error_text = str(merged.get("error") or "代理无效").strip()
+        return {
+            "success": False,
+            "status": "dead",
+            "message": f"代理检测失败: {error_text}",
+            "task_id": task_id,
+            "submit_http_status": submit_http_status,
+            "submit_response_preview": submit_body_preview,
+            "dsn": merged.get("dsn"),
+            "protocol_layer": merged.get("protocol_layer"),
+            "real_ip": None,
+            "latency_seconds": None,
+            "latency_ms": None,
+            "score": 0,
+            "proxy_type": None,
+            "country": None,
+            "region": None,
+            "city": None,
+            "services": [],
+            "error": error_text,
         }
 
     status = _determine_status(merged)
@@ -429,6 +526,7 @@ async def _run_checkerproxy_health_check(
         "region": merged.get("region"),
         "city": merged.get("city"),
         "services": services_result,
+        "error": merged.get("error"),
     }
 
 

@@ -153,16 +153,22 @@ def normalize_screen_name(raw_value: str | None) -> str:
 
 def map_verification_to_account_status(verify_status: str, current_status: str) -> str:
     normalized = str(verify_status or "").strip().lower()
-    original = str(current_status or "active").strip().lower() or "active"
+    original = str(current_status or "unverified").strip().lower() or "unverified"
 
+    # 验证通过 → 正常
     if normalized in {"active", "protected"}:
         return "active"
+    # 被封/被锁/不可用 → 异常
     if normalized in {"suspended", "locked"} or normalized.startswith("unavailable_"):
-        return "suspended"
+        return "abnormal"
+    # 账号不存在 → 异常
     if normalized == "not_found":
-        return "disabled"
+        return "abnormal"
+    # 明确失败：token 失效、用户名无效、请求异常、解析错误等 → 异常（不能留在正常账号）
+    if normalized in {"auth_token_expired", "invalid_username", "exception", "parse_error"} or normalized.startswith("http_error_"):
+        return "abnormal"
 
-    # For transient errors (rate limit/network/auth failures), keep previous status.
+    # 仅对真正瞬时错误（如 rate_limited、exception）保留原状态
     return original
 
 

@@ -33,11 +33,14 @@ from main import (
 from proxy_store import (
     create_proxy_record,
     delete_proxy_record,
+    detect_ip_reuse_conflicts,
     get_proxy_record,
+    list_account_bindings,
     list_proxy_records,
     parse_proxy_input,
     remove_account_binding,
     update_proxy_record,
+    upsert_account_binding,
 )
 from task_store import (
     append_task_log,
@@ -141,7 +144,7 @@ class AccountCreateRequest(BaseModel):
     token: str | None = None
     email: str | None = None
     email_password: str | None = None
-    status: str = "active"
+    status: str = "unverified"
 
 
 class AccountBatchCreateRequest(BaseModel):
@@ -149,11 +152,24 @@ class AccountBatchCreateRequest(BaseModel):
     raw_text: str = Field(..., min_length=1)
     delimiter: str = "----"
     field_order: list[str] = Field(..., min_length=1)
-    status: str = "active"
+    status: str = "unverified"
 
 
 class AccountVerifyRequest(BaseModel):
     account_ids: list[str] = Field(..., min_length=1)
+
+
+# ---------- 账号-代理绑定 请求模型 ----------
+
+class BindingUpsertRequest(BaseModel):
+    """绑定/更新 账号与代理的一对一关系"""
+    account_id: str = Field(..., min_length=1)
+    proxy_id: str = Field(..., min_length=1)
+
+
+class BindingRemoveRequest(BaseModel):
+    """解除绑定"""
+    account_id: str = Field(..., min_length=1)
 
 
 app = FastAPI(title="MCN Backend API", version="0.1.0")
@@ -795,6 +811,12 @@ def serialize_proxy_record(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def serialize_account_record(record: dict[str, Any]) -> dict[str, Any]:
+    raw_status = record.get("status")
+    # 兼容旧数据：suspended/disabled 映射为 abnormal
+    status = str(raw_status or "unverified").strip().lower()
+    if status in ("suspended", "disabled"):
+        status = "abnormal"
+
     return {
         "id": record.get("id"),
         "platform": record.get("platform"),
@@ -804,7 +826,7 @@ def serialize_account_record(record: dict[str, Any]) -> dict[str, Any]:
         "token_masked": mask_secret(record.get("token")),
         "email": record.get("email"),
         "email_password_masked": mask_secret(record.get("email_password")),
-        "status": record.get("status"),
+        "status": status,
         "verify_status": record.get("verify_status"),
         "verify_message": record.get("verify_message"),
         "verify_checked_at": record.get("verify_checked_at"),
@@ -1216,7 +1238,7 @@ def verify_accounts(payload: AccountVerifyRequest) -> dict[str, Any]:
         for account in target_accounts:
             account_id = str(account.get("id") or "")
             account_name = str(account.get("account") or "")
-            previous_status = str(account.get("status") or "active")
+            previous_status = str(account.get("status") or "unverified")
             auth_token = parse_auth_token(str(account.get("token") or ""))
             print(
                 f"[verify_accounts] checking account_id={account_id} "
@@ -1342,6 +1364,380 @@ def verify_accounts(payload: AccountVerifyRequest) -> dict[str, Any]:
         "success_count": success_count,
         "failure_count": failure_count,
         "missing_ids": missing_ids,
+    }
+
+
+# =============================================
+# 账号-代理 绑定管理 API
+# =============================================
+
+BIND_LOG = "[bindings]"
+
+
+@app.get("/api/bindings")
+def api_list_bindings():
+    """查询所有账号-代理绑定关系，并附带账号名和代理地址方便前端展示"""
+    print(f"{BIND_LOG} GET /api/bindings 查询所有绑定关系", flush=True)
+    bindings = list_account_bindings()
+    print(f"{BIND_LOG}   当前绑定数量: {len(bindings)}", flush=True)
+    enriched = []
+    for b in bindings:
+        proxy = get_proxy_record(b.get("proxy_id", ""))
+        proxy_label = None
+        if proxy:
+            proxy_label = f"{proxy['protocol']}://{proxy['ip']}:{proxy['port']}"
+        enriched.append({
+            **b,
+            "proxy_label": proxy_label,
+            "proxy_status": proxy.get("status") if proxy else None,
+        })
+    print(f"{BIND_LOG}   返回 {len(enriched)} 条绑定记录", flush=True)
+    return {"success": True, "bindings": enriched}
+
+
+@app.post("/api/bindings")
+def api_upsert_binding(req: BindingUpsertRequest):
+    """绑定账号到代理（一对一，重复调用会更新绑定）"""
+    print(f"{BIND_LOG} POST /api/bindings account_id={req.account_id} proxy_id={req.proxy_id}", flush=True)
+
+    # 1. 校验账号存在
+    account = get_account_record(req.account_id)
+    if account is None:
+        print(f"{BIND_LOG}   ❌ 账号不存在: {req.account_id}", flush=True)
+        return {"success": False, "message": f"账号不存在: {req.account_id}"}
+    print(f"{BIND_LOG}   账号: {account.get('account')} (platform={account.get('platform')})", flush=True)
+
+    # 2. 校验代理存在
+    proxy = get_proxy_record(req.proxy_id)
+    if proxy is None:
+        print(f"{BIND_LOG}   ❌ 代理不存在: {req.proxy_id}", flush=True)
+        return {"success": False, "message": f"代理不存在: {req.proxy_id}"}
+    proxy_label = f"{proxy['protocol']}://{proxy['ip']}:{proxy['port']}"
+    print(f"{BIND_LOG}   代理: {proxy_label} (type={proxy.get('type')}, status={proxy.get('status')})", flush=True)
+
+    # 3. 校验代理必须是 publish 类型
+    if proxy.get("type") != "publish":
+        print(f"{BIND_LOG}   ❌ 代理类型不是 publish: {proxy.get('type')}", flush=True)
+        return {
+            "success": False,
+            "message": f"只能绑定「发布用」代理，当前代理类型为: {proxy.get('type')}",
+        }
+
+    # 4. 执行绑定
+    try:
+        binding = upsert_account_binding(
+            platform=account.get("platform", "twitter"),
+            account_uid=req.account_id,
+            account_name=account.get("account"),
+            proxy_id=req.proxy_id,
+        )
+        print(f"{BIND_LOG}   ✅ 绑定成功: {account.get('account')} → {proxy_label}", flush=True)
+    except ValueError as e:
+        print(f"{BIND_LOG}   ❌ 绑定失败: {e}", flush=True)
+        return {"success": False, "message": str(e)}
+
+    return {
+        "success": True,
+        "message": f"已将 {account.get('account')} 绑定到 {proxy_label}",
+        "binding": binding,
+    }
+
+
+@app.delete("/api/bindings/{account_id}")
+def api_remove_binding(account_id: str):
+    """解除账号的代理绑定"""
+    print(f"{BIND_LOG} DELETE /api/bindings/{account_id}", flush=True)
+    account = get_account_record(account_id)
+    account_name = account.get("account", account_id) if account else account_id
+    platform = account.get("platform", "twitter") if account else "twitter"
+
+    removed = remove_account_binding(platform=platform, account_uid=account_id)
+    if not removed:
+        print(f"{BIND_LOG}   ⚠️ 账号 {account_name} 没有绑定任何代理", flush=True)
+        return {"success": False, "message": f"账号 {account_name} 没有绑定任何代理"}
+
+    print(f"{BIND_LOG}   ✅ 已解除 {account_name} 的代理绑定", flush=True)
+    return {"success": True, "message": f"已解除 {account_name} 的代理绑定"}
+
+
+@app.get("/api/bindings/conflicts")
+def api_detect_binding_conflicts():
+    """检测同一出口 IP 下是否绑定了多个账号（防关联告警）"""
+    print(f"{BIND_LOG} GET /api/bindings/conflicts 检测IP复用冲突", flush=True)
+    conflicts = detect_ip_reuse_conflicts()
+    print(f"{BIND_LOG}   冲突数量: {len(conflicts)}", flush=True)
+    if not conflicts:
+        return {
+            "success": True,
+            "has_conflicts": False,
+            "message": "未检测到 IP 复用冲突，所有账号 IP 隔离正常",
+            "conflicts": [],
+        }
+    return {
+        "success": True,
+        "has_conflicts": True,
+        "message": f"检测到 {len(conflicts)} 个 IP 存在多账号复用风险",
+        "conflicts": conflicts,
+    }
+
+
+@app.post("/api/bindings/verify")
+def api_verify_binding(req: BindingUpsertRequest):
+    """验证账号与代理的绑定是否真正生效（手动指定 account_id + proxy_id）"""
+    from binding_verifier import verify_binding as do_verify
+
+    print(f"{BIND_LOG} POST /api/bindings/verify account_id={req.account_id} proxy_id={req.proxy_id}", flush=True)
+
+    account = get_account_record(req.account_id)
+    if account is None:
+        print(f"{BIND_LOG}   ❌ 账号不存在: {req.account_id}", flush=True)
+        return {"success": False, "message": f"账号不存在: {req.account_id}"}
+
+    proxy = get_proxy_record(req.proxy_id)
+    if proxy is None:
+        print(f"{BIND_LOG}   ❌ 代理不存在: {req.proxy_id}", flush=True)
+        return {"success": False, "message": f"代理不存在: {req.proxy_id}"}
+
+    print(f"{BIND_LOG}   开始验证: {account.get('account')} ↔ {proxy.get('ip')}:{proxy.get('port')}", flush=True)
+    result = do_verify(account=account, proxy=proxy)
+    print(f"{BIND_LOG}   验证结果: success={result['success']} summary={result['summary']}", flush=True)
+
+    return {"success": True, "verification": result}
+
+
+@app.post("/api/bindings/verify-by-account/{account_id}")
+def api_verify_binding_by_account(account_id: str):
+    """根据账号 ID 验证其已绑定的代理是否生效"""
+    from binding_verifier import verify_binding as do_verify
+
+    print(f"{BIND_LOG} POST /api/bindings/verify-by-account/{account_id}", flush=True)
+
+    account = get_account_record(account_id)
+    if account is None:
+        print(f"{BIND_LOG}   ❌ 账号不存在: {account_id}", flush=True)
+        return {"success": False, "message": f"账号不存在: {account_id}"}
+    print(f"{BIND_LOG}   账号: {account.get('account')}", flush=True)
+
+    bindings = list_account_bindings()
+    binding = next(
+        (b for b in bindings if b.get("account_uid") == account_id),
+        None,
+    )
+    if binding is None:
+        print(f"{BIND_LOG}   ❌ 账号未绑定代理", flush=True)
+        return {
+            "success": False,
+            "message": f"账号 {account.get('account')} 尚未绑定任何代理",
+        }
+    print(f"{BIND_LOG}   绑定的 proxy_id={binding.get('proxy_id')}", flush=True)
+
+    proxy = get_proxy_record(binding.get("proxy_id", ""))
+    if proxy is None:
+        print(f"{BIND_LOG}   ❌ 绑定的代理已被删除", flush=True)
+        return {
+            "success": False,
+            "message": f"绑定的代理已被删除 (proxy_id={binding.get('proxy_id')})",
+        }
+    print(f"{BIND_LOG}   代理: {proxy.get('ip')}:{proxy.get('port')} (status={proxy.get('status')})", flush=True)
+
+    print(f"{BIND_LOG}   开始两层验证...", flush=True)
+    result = do_verify(account=account, proxy=proxy)
+    print(f"{BIND_LOG}   验证结果: success={result['success']}", flush=True)
+
+    return {"success": True, "verification": result}
+
+
+# ---------- 批量绑定 + 批量验证 ----------
+
+
+class BatchBindRequest(BaseModel):
+    """批量自动绑定：将选中的账号自动分配空闲的发布代理"""
+    account_ids: list[str] = Field(..., min_length=1)
+
+
+class BatchVerifyRequest(BaseModel):
+    """批量验证绑定状态"""
+    account_ids: list[str] = Field(..., min_length=1)
+
+
+@app.post("/api/bindings/batch-auto-bind")
+def api_batch_auto_bind(req: BatchBindRequest):
+    """
+    批量自动绑定：为选中的账号自动分配空闲的发布代理。
+    空闲代理 = publish 类型 + active/slow 状态 + 未被任何账号绑定。
+    """
+    print(f"{BIND_LOG} POST /api/bindings/batch-auto-bind 账号数={len(req.account_ids)}", flush=True)
+
+    # 1. 获取所有发布代理
+    all_proxies = list_proxy_records()
+    publish_proxies = [
+        p for p in all_proxies
+        if p.get("type") == "publish" and p.get("status") in ("active", "slow")
+    ]
+    print(f"{BIND_LOG}   可用发布代理总数: {len(publish_proxies)}", flush=True)
+
+    # 2. 获取已绑定的 proxy_id 集合
+    existing_bindings = list_account_bindings()
+    bound_proxy_ids = {b.get("proxy_id") for b in existing_bindings}
+    print(f"{BIND_LOG}   已被绑定的代理数: {len(bound_proxy_ids)}", flush=True)
+
+    # 3. 筛选空闲代理
+    free_proxies = [p for p in publish_proxies if p["id"] not in bound_proxy_ids]
+    print(f"{BIND_LOG}   空闲代理数: {len(free_proxies)}", flush=True)
+
+    # 4. 筛选需要绑定的账号（排除已绑定的）
+    bound_account_ids = {b.get("account_uid") for b in existing_bindings}
+    accounts_to_bind = []
+    for aid in req.account_ids:
+        if aid in bound_account_ids:
+            print(f"{BIND_LOG}   跳过已绑定账号: {aid}", flush=True)
+            continue
+        acc = get_account_record(aid)
+        if acc is None:
+            print(f"{BIND_LOG}   跳过不存在的账号: {aid}", flush=True)
+            continue
+        accounts_to_bind.append(acc)
+    print(f"{BIND_LOG}   需要绑定的账号数: {len(accounts_to_bind)}", flush=True)
+
+    if not accounts_to_bind:
+        return {
+            "success": True,
+            "message": "所有选中的账号已经绑定了代理，无需操作",
+            "bound_count": 0,
+            "skipped_count": len(req.account_ids),
+            "results": [],
+        }
+
+    if len(free_proxies) < len(accounts_to_bind):
+        print(f"{BIND_LOG}   ⚠️ 空闲代理不足: 需要{len(accounts_to_bind)}个，只有{len(free_proxies)}个", flush=True)
+
+    # 5. 逐个绑定
+    results = []
+    bound_count = 0
+    for i, acc in enumerate(accounts_to_bind):
+        if i >= len(free_proxies):
+            results.append({
+                "account_id": acc["id"],
+                "account_name": acc.get("account"),
+                "success": False,
+                "message": "空闲代理已用完",
+            })
+            print(f"{BIND_LOG}   [{i+1}/{len(accounts_to_bind)}] {acc.get('account')} → ❌ 无空闲代理", flush=True)
+            continue
+
+        proxy = free_proxies[i]
+        proxy_label = f"{proxy['protocol']}://{proxy['ip']}:{proxy['port']}"
+        try:
+            upsert_account_binding(
+                platform=acc.get("platform", "twitter"),
+                account_uid=acc["id"],
+                account_name=acc.get("account"),
+                proxy_id=proxy["id"],
+            )
+            results.append({
+                "account_id": acc["id"],
+                "account_name": acc.get("account"),
+                "proxy_id": proxy["id"],
+                "proxy_label": proxy_label,
+                "success": True,
+                "message": f"已绑定到 {proxy_label}",
+            })
+            bound_count += 1
+            print(f"{BIND_LOG}   [{i+1}/{len(accounts_to_bind)}] {acc.get('account')} → ✅ {proxy_label}", flush=True)
+        except ValueError as e:
+            results.append({
+                "account_id": acc["id"],
+                "account_name": acc.get("account"),
+                "success": False,
+                "message": str(e),
+            })
+            print(f"{BIND_LOG}   [{i+1}/{len(accounts_to_bind)}] {acc.get('account')} → ❌ {e}", flush=True)
+
+    msg = f"批量绑定完成: 成功 {bound_count}/{len(accounts_to_bind)}"
+    if len(free_proxies) < len(accounts_to_bind):
+        msg += f"（空闲代理不足，缺少 {len(accounts_to_bind) - len(free_proxies)} 个）"
+    print(f"{BIND_LOG}   {msg}", flush=True)
+
+    return {
+        "success": bound_count > 0,
+        "message": msg,
+        "bound_count": bound_count,
+        "skipped_count": len(req.account_ids) - len(accounts_to_bind),
+        "failed_count": len(accounts_to_bind) - bound_count,
+        "results": results,
+    }
+
+
+@app.post("/api/bindings/batch-verify")
+def api_batch_verify(req: BatchVerifyRequest):
+    """批量验证选中账号的绑定状态（两层验证）"""
+    from binding_verifier import verify_binding as do_verify
+
+    print(f"{BIND_LOG} POST /api/bindings/batch-verify 账号数={len(req.account_ids)}", flush=True)
+
+    all_bindings = list_account_bindings()
+    binding_map = {b.get("account_uid"): b for b in all_bindings}
+
+    results = []
+    for i, account_id in enumerate(req.account_ids):
+        print(f"{BIND_LOG}   [{i+1}/{len(req.account_ids)}] 验证账号 {account_id}", flush=True)
+
+        account = get_account_record(account_id)
+        if account is None:
+            print(f"{BIND_LOG}     ❌ 账号不存在", flush=True)
+            results.append({
+                "account_id": account_id,
+                "account_name": None,
+                "success": False,
+                "summary": "账号不存在",
+            })
+            continue
+
+        binding = binding_map.get(account_id)
+        if binding is None:
+            print(f"{BIND_LOG}     ❌ 未绑定代理", flush=True)
+            results.append({
+                "account_id": account_id,
+                "account_name": account.get("account"),
+                "success": False,
+                "summary": "未绑定代理",
+            })
+            continue
+
+        proxy = get_proxy_record(binding.get("proxy_id", ""))
+        if proxy is None:
+            print(f"{BIND_LOG}     ❌ 绑定的代理已被删除", flush=True)
+            results.append({
+                "account_id": account_id,
+                "account_name": account.get("account"),
+                "success": False,
+                "summary": "绑定的代理已被删除",
+            })
+            continue
+
+        print(f"{BIND_LOG}     开始验证 {account.get('account')} ↔ {proxy.get('ip')}:{proxy.get('port')}", flush=True)
+        verification = do_verify(account=account, proxy=proxy)
+        print(f"{BIND_LOG}     结果: success={verification['success']}", flush=True)
+
+        results.append({
+            "account_id": account_id,
+            "account_name": account.get("account"),
+            "success": verification["success"],
+            "summary": verification["summary"],
+            "verification": verification,
+        })
+
+    success_count = sum(1 for r in results if r["success"])
+    fail_count = len(results) - success_count
+    msg = f"批量验证完成: {success_count} 通过, {fail_count} 失败 (共 {len(results)})"
+    print(f"{BIND_LOG}   {msg}", flush=True)
+
+    return {
+        "success": True,
+        "message": msg,
+        "success_count": success_count,
+        "fail_count": fail_count,
+        "results": results,
     }
 
 

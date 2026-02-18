@@ -1,5 +1,6 @@
 import json
 import uuid
+import fcntl
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -36,10 +37,42 @@ def _read_list(path: Path) -> list[dict[str, Any]]:
 
 def _write_list_atomic(path: Path, payload: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_suffix(path.suffix + ".tmp")
-    with open(temp_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-    temp_path.replace(path)
+    # 用唯一临时文件名避免并发写冲突
+    temp_path = path.with_suffix(f".{uuid.uuid4().hex[:8]}.tmp")
+    try:
+        with open(temp_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        temp_path.replace(path)
+    except Exception:
+        # 清理残留临时文件
+        try:
+            temp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise
+
+
+def _read_and_write_locked(
+    path: Path,
+    mutator: Any,
+) -> Any:
+    """带文件锁的读-改-写，防止并发写入冲突。"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_suffix(path.suffix + ".lock")
+    with open(lock_path, "w") as lock_file:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        try:
+            records = _read_list(path)
+            result = mutator(records)
+            if isinstance(result, tuple) and len(result) == 2:
+                new_records, return_value = result
+            else:
+                new_records = records
+                return_value = result
+            _write_list_atomic(path, new_records)
+            return return_value
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
 
 
 def _normalize_protocol(value: str | None) -> str:
@@ -201,49 +234,50 @@ def update_proxy_record(proxy_id: str, **fields: Any) -> dict[str, Any] | None:
     if not target_id:
         return None
 
-    records = _read_list(PROXY_STORE_PATH)
-    target_index = -1
-    for index, item in enumerate(records):
-        if str(item.get("id")) == target_id:
-            target_index = index
-            break
-    if target_index < 0:
-        return None
+    def _mutator(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+        target_index = -1
+        for index, item in enumerate(records):
+            if str(item.get("id")) == target_id:
+                target_index = index
+                break
+        if target_index < 0:
+            return records, None
 
-    target = dict(records[target_index])
-    if "ip" in fields:
-        normalized_ip = str(fields["ip"] or "").strip()
-        if not normalized_ip:
-            raise ValueError("ip 不能为空")
-        target["ip"] = normalized_ip
-    if "port" in fields:
-        target["port"] = _normalize_port(fields["port"])
-    if "protocol" in fields:
-        target["protocol"] = _normalize_protocol(fields["protocol"])
-    if "username" in fields:
-        target["username"] = _clean_text(fields["username"])
-    if "password" in fields:
-        target["password"] = _clean_text(fields["password"])
-    if "region" in fields:
-        target["region"] = _clean_text(fields["region"])
-    if "type" in fields:
-        target["type"] = _normalize_proxy_type(fields["type"])
-    if "status" in fields:
-        target["status"] = _normalize_proxy_status(fields["status"])
-    if "last_checked_at" in fields:
-        target["last_checked_at"] = _clean_text(fields["last_checked_at"])
-    if "last_latency_ms" in fields:
-        target["last_latency_ms"] = fields["last_latency_ms"]
-    if "last_error" in fields:
-        target["last_error"] = _clean_text(fields["last_error"])
-    if "last_check_result" in fields:
-        value = fields["last_check_result"]
-        target["last_check_result"] = value if isinstance(value, dict) else None
+        target = dict(records[target_index])
+        if "ip" in fields:
+            normalized_ip = str(fields["ip"] or "").strip()
+            if not normalized_ip:
+                raise ValueError("ip 不能为空")
+            target["ip"] = normalized_ip
+        if "port" in fields:
+            target["port"] = _normalize_port(fields["port"])
+        if "protocol" in fields:
+            target["protocol"] = _normalize_protocol(fields["protocol"])
+        if "username" in fields:
+            target["username"] = _clean_text(fields["username"])
+        if "password" in fields:
+            target["password"] = _clean_text(fields["password"])
+        if "region" in fields:
+            target["region"] = _clean_text(fields["region"])
+        if "type" in fields:
+            target["type"] = _normalize_proxy_type(fields["type"])
+        if "status" in fields:
+            target["status"] = _normalize_proxy_status(fields["status"])
+        if "last_checked_at" in fields:
+            target["last_checked_at"] = _clean_text(fields["last_checked_at"])
+        if "last_latency_ms" in fields:
+            target["last_latency_ms"] = fields["last_latency_ms"]
+        if "last_error" in fields:
+            target["last_error"] = _clean_text(fields["last_error"])
+        if "last_check_result" in fields:
+            value = fields["last_check_result"]
+            target["last_check_result"] = value if isinstance(value, dict) else None
 
-    target["updated_at"] = now_iso()
-    records[target_index] = target
-    _write_list_atomic(PROXY_STORE_PATH, records)
-    return target
+        target["updated_at"] = now_iso()
+        records[target_index] = target
+        return records, target
+
+    return _read_and_write_locked(PROXY_STORE_PATH, _mutator)
 
 
 def delete_proxy_record(proxy_id: str) -> bool:

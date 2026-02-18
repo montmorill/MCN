@@ -10,7 +10,7 @@ RUNTIME_DIR = BASE_DIR / "runtime"
 RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
 ACCOUNT_STORE_PATH = RUNTIME_DIR / "accounts.json"
-ALLOWED_ACCOUNT_STATUS = {"active", "suspended", "disabled"}
+ALLOWED_ACCOUNT_STATUS = {"active", "abnormal", "unverified"}
 
 
 def now_iso() -> str:
@@ -44,7 +44,12 @@ def _clean_text(value: Any) -> str | None:
 
 
 def _normalize_status(value: str | None) -> str:
-    status = str(value or "active").strip().lower()
+    status = str(value or "unverified").strip().lower()
+    # 兼容旧数据：suspended → abnormal, disabled → abnormal
+    if status == "suspended":
+        status = "abnormal"
+    elif status == "disabled":
+        status = "abnormal"
     if status not in ALLOWED_ACCOUNT_STATUS:
         raise ValueError(f"不支持的账号状态: {status}")
     return status
@@ -120,7 +125,7 @@ def create_account_record(
     token: str | None = None,
     email: str | None = None,
     email_password: str | None = None,
-    status: str = "active",
+    status: str = "unverified",
     extra_fields: dict[str, str] | None = None,
     raw_line: str | None = None,
 ) -> dict[str, Any]:

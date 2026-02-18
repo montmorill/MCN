@@ -1,272 +1,5 @@
 [
   {
-    "id": "9d29b35464b9474a9290168b021c5779",
-    "ip": "usdata.lumidaili.com",
-    "port": 10000,
-    "protocol": "http",
-    "username": "userID-2608-orderid-201875-region-us",
-    "password": "59751a2451fa4c0a",
-    "region": null,
-    "type": "monitor",
-    "status": "slow",
-    "last_checked_at": "2026-02-16T05:52:04",
-    "last_latency_ms": 2050,
-    "last_error": null,
-    "health_status": "unhealthy",
-    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "ip_address": null,
-    "country": null,
-    "city": null,
-    "isp": null,
-    "stage_results": {
-      "stage1_ipinfo": {
-        "success": false,
-        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
-      },
-      "stage1_httpbin_backup": {
-        "success": false,
-        "reason": "httpbin backup check failed: 400 Bad Request"
-      }
-    },
-    "created_at": "2026-02-16T02:41:12",
-    "updated_at": "2026-02-16T05:52:04",
-    "last_check_result": {
-      "success": true,
-      "status": "slow",
-      "message": "代理深度检测完成 (评分=3.9, 解锁=9/11, 延迟=2050ms)",
-      "task_id": "e4c9d3ee-8d1a-4f21-8071-27bd17958c37",
-      "submit_http_status": 200,
-      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
-      "dsn": "userID-2608-orderid-201875-region-us:59751a2451fa4c0a@usdata.lumidaili.com:10000",
-      "protocol_layer": "http",
-      "real_ip": "2.58.38.115",
-      "latency_seconds": 2.05,
-      "latency_ms": 2050,
-      "score": 3.9,
-      "proxy_type": "Corporate",
-      "country": "United States",
-      "region": "Texas",
-      "city": "Dallas",
-      "services": [
-        {
-          "name": "instagram",
-          "ok": true,
-          "latency_seconds": 1.71
-        },
-        {
-          "name": "twitch",
-          "ok": true,
-          "latency_seconds": 2.7
-        },
-        {
-          "name": "facebook",
-          "ok": false,
-          "latency_seconds": 2.84
-        },
-        {
-          "name": "yandex",
-          "ok": true,
-          "latency_seconds": 4.65
-        },
-        {
-          "name": "pinterest",
-          "ok": true,
-          "latency_seconds": 1.56
-        },
-        {
-          "name": "twitter",
-          "ok": false,
-          "latency_seconds": 1.49
-        },
-        {
-          "name": "google",
-          "ok": true,
-          "latency_seconds": 2.82
-        },
-        {
-          "name": "youtube",
-          "ok": true,
-          "latency_seconds": 3.24
-        },
-        {
-          "name": "vk",
-          "ok": true,
-          "latency_seconds": 2.34
-        },
-        {
-          "name": "tiktok",
-          "ok": true,
-          "latency_seconds": 2.87
-        },
-        {
-          "name": "spotify",
-          "ok": true,
-          "latency_seconds": 1.75
-        }
-      ]
-    }
-  },
-  {
-    "id": "c5a96dc6dfa54cd1a93f64dbe4cac18d",
-    "ip": "asdata.lumidaili.com",
-    "port": 10000,
-    "protocol": "http",
-    "username": "userID-2608-orderid-18098-region-us",
-    "password": "330d976b7d0c23e4",
-    "region": null,
-    "type": "monitor",
-    "status": "dead",
-    "last_checked_at": "2026-02-16T02:56:46",
-    "last_latency_ms": null,
-    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "health_status": "unhealthy",
-    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "ip_address": null,
-    "country": null,
-    "city": null,
-    "isp": null,
-    "stage_results": {
-      "stage1_ipinfo": {
-        "success": false,
-        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
-      },
-      "stage1_httpbin_backup": {
-        "success": false,
-        "reason": "httpbin backup check failed: 400 Bad Request"
-      }
-    },
-    "created_at": "2026-02-16T02:41:12",
-    "updated_at": "2026-02-16T02:56:53"
-  },
-  {
-    "id": "0a35daa241914f09b03103726d620c76",
-    "ip": "asdata.lumidaili.com",
-    "port": 10000,
-    "protocol": "http",
-    "username": "userID-2608-orderid-202796-region-us",
-    "password": "cb3cd1dbc6bef765",
-    "region": null,
-    "type": "monitor",
-    "status": "dead",
-    "last_checked_at": "2026-02-16T02:56:38",
-    "last_latency_ms": null,
-    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "health_status": "unhealthy",
-    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "ip_address": null,
-    "country": null,
-    "city": null,
-    "isp": null,
-    "stage_results": {
-      "stage1_ipinfo": {
-        "success": false,
-        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
-      },
-      "stage1_httpbin_backup": {
-        "success": false,
-        "reason": "httpbin backup check failed: 400 Bad Request"
-      }
-    },
-    "created_at": "2026-02-16T02:41:12",
-    "updated_at": "2026-02-16T02:56:46"
-  },
-  {
-    "id": "16d38adfbeee4b60ae902cb72528cb14",
-    "ip": "asdata.lumidaili.com",
-    "port": 10000,
-    "protocol": "http",
-    "username": "userID-2608-orderid-202796-region-any",
-    "password": "cb3cd1dbc6bef765",
-    "region": null,
-    "type": "monitor",
-    "status": "dead",
-    "last_checked_at": "2026-02-16T02:56:31",
-    "last_latency_ms": null,
-    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "health_status": "unhealthy",
-    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "ip_address": null,
-    "country": null,
-    "city": null,
-    "isp": null,
-    "stage_results": {
-      "stage1_ipinfo": {
-        "success": false,
-        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
-      },
-      "stage1_httpbin_backup": {
-        "success": false,
-        "reason": "httpbin backup check failed: 400 Bad Request"
-      }
-    },
-    "created_at": "2026-02-16T02:41:12",
-    "updated_at": "2026-02-16T02:56:38"
-  },
-  {
-    "id": "51e8c149af4443eda0605e37b17e740b",
-    "ip": "usdata.lumidaili.com",
-    "port": 10000,
-    "protocol": "http",
-    "username": "userID-2608-orderid-18098-region-us",
-    "password": "330d976b7d0c23e4",
-    "region": null,
-    "type": "monitor",
-    "status": "dead",
-    "last_checked_at": "2026-02-16T02:56:24",
-    "last_latency_ms": null,
-    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "health_status": "unhealthy",
-    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "ip_address": null,
-    "country": null,
-    "city": null,
-    "isp": null,
-    "stage_results": {
-      "stage1_ipinfo": {
-        "success": false,
-        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
-      },
-      "stage1_httpbin_backup": {
-        "success": false,
-        "reason": "httpbin backup check failed: 400 Bad Request"
-      }
-    },
-    "created_at": "2026-02-16T02:41:12",
-    "updated_at": "2026-02-16T02:56:31"
-  },
-  {
-    "id": "74bcd5deeb834396ae0ce7cfbfc42023",
-    "ip": "usdata.lumidaili.com",
-    "port": 10000,
-    "protocol": "http",
-    "username": "userID-2608-orderid-17798-region-us",
-    "password": "123321",
-    "region": null,
-    "type": "monitor",
-    "status": "dead",
-    "last_checked_at": "2026-02-16T02:56:17",
-    "last_latency_ms": null,
-    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "health_status": "unhealthy",
-    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
-    "ip_address": null,
-    "country": null,
-    "city": null,
-    "isp": null,
-    "stage_results": {
-      "stage1_ipinfo": {
-        "success": false,
-        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
-      },
-      "stage1_httpbin_backup": {
-        "success": false,
-        "reason": "httpbin backup check failed: 400 Bad Request"
-      }
-    },
-    "created_at": "2026-02-16T02:49:36",
-    "updated_at": "2026-02-16T02:56:24"
-  },
-  {
     "id": "13d9430463624a7aa7a7d79c6c98ad5d",
     "ip": "usdata.lumidaili.com",
     "port": 10000,
@@ -275,13 +8,88 @@
     "password": "59751a2451fa4c0a",
     "region": null,
     "type": "publish",
-    "status": "active",
-    "last_checked_at": null,
-    "last_latency_ms": null,
+    "status": "slow",
+    "last_checked_at": "2026-02-19T02:35:07",
+    "last_latency_ms": 2350,
     "last_error": null,
-    "last_check_result": null,
+    "last_check_result": {
+      "success": true,
+      "status": "slow",
+      "message": "代理深度检测完成 (评分=1.8, 解锁=10/11, 延迟=2350ms)",
+      "task_id": "0761535c-d381-425c-8eb0-09f4760eb3e0",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "dsn": "userID-2608-orderid-201875-region-us:59751a2451fa4c0a@usdata.lumidaili.com:10000",
+      "protocol_layer": "http",
+      "real_ip": "35.151.157.197",
+      "latency_seconds": 2.35,
+      "latency_ms": 2350,
+      "score": 1.8,
+      "proxy_type": "Corporate",
+      "country": "United States",
+      "region": "Georgia",
+      "city": "Smyrna",
+      "services": [
+        {
+          "name": "youtube",
+          "ok": true,
+          "latency_seconds": 3.5
+        },
+        {
+          "name": "google",
+          "ok": true,
+          "latency_seconds": 2.86
+        },
+        {
+          "name": "twitter",
+          "ok": false,
+          "latency_seconds": 1.42
+        },
+        {
+          "name": "vk",
+          "ok": true,
+          "latency_seconds": 2.1
+        },
+        {
+          "name": "tiktok",
+          "ok": true,
+          "latency_seconds": 2.95
+        },
+        {
+          "name": "facebook",
+          "ok": true,
+          "latency_seconds": 1.48
+        },
+        {
+          "name": "twitch",
+          "ok": true,
+          "latency_seconds": 3.05
+        },
+        {
+          "name": "yandex",
+          "ok": true,
+          "latency_seconds": 3.52
+        },
+        {
+          "name": "pinterest",
+          "ok": true,
+          "latency_seconds": 1.36
+        },
+        {
+          "name": "instagram",
+          "ok": true,
+          "latency_seconds": 1.41
+        },
+        {
+          "name": "spotify",
+          "ok": true,
+          "latency_seconds": 1.93
+        }
+      ],
+      "error": null
+    },
     "created_at": "2026-02-16T05:49:44",
-    "updated_at": "2026-02-16T05:49:44"
+    "updated_at": "2026-02-19T02:35:07"
   },
   {
     "id": "ac6c5b87e635429488e8ac047dae5ec1",
@@ -292,13 +100,17 @@
     "password": "330d976b7d0c23e4",
     "region": null,
     "type": "publish",
-    "status": "active",
-    "last_checked_at": null,
+    "status": "dead",
+    "last_checked_at": "2026-02-19T02:21:12",
     "last_latency_ms": null,
-    "last_error": null,
-    "last_check_result": null,
+    "last_error": "[Errno 2] No such file or directory: '/Users/sakiyuka/Downloads/MCN_new/backend/runtime/proxy_ips.json.tmp' -> '/Users/sakiyuka/Downloads/MCN_new/backend/runtime/proxy_ips.json'",
+    "last_check_result": {
+      "success": false,
+      "status": "dead",
+      "message": "[Errno 2] No such file or directory: '/Users/sakiyuka/Downloads/MCN_new/backend/runtime/proxy_ips.json.tmp' -> '/Users/sakiyuka/Downloads/MCN_new/backend/runtime/proxy_ips.json'"
+    },
     "created_at": "2026-02-16T05:49:44",
-    "updated_at": "2026-02-16T05:49:44"
+    "updated_at": "2026-02-19T02:21:12"
   },
   {
     "id": "1531cf26e9d64c738c455037e134e9bf",
@@ -309,13 +121,87 @@
     "password": "cb3cd1dbc6bef765",
     "region": null,
     "type": "publish",
-    "status": "active",
-    "last_checked_at": null,
-    "last_latency_ms": null,
+    "status": "slow",
+    "last_checked_at": "2026-02-19T01:37:53",
+    "last_latency_ms": 2670,
     "last_error": null,
-    "last_check_result": null,
+    "last_check_result": {
+      "success": true,
+      "status": "slow",
+      "message": "代理深度检测完成 (评分=3.6, 解锁=9/11, 延迟=2670ms)",
+      "task_id": "75db77c3-62d0-4ac7-8334-420d940d7179",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "dsn": "userID-2608-orderid-202796-region-us:cb3cd1dbc6bef765@asdata.lumidaili.com:10000",
+      "protocol_layer": "http",
+      "real_ip": "76.72.206.86",
+      "latency_seconds": 2.67,
+      "latency_ms": 2670,
+      "score": 3.6,
+      "proxy_type": "Residential",
+      "country": "United States",
+      "region": "Kentucky",
+      "city": "Whitesburg",
+      "services": [
+        {
+          "name": "google",
+          "ok": true,
+          "latency_seconds": 9.67
+        },
+        {
+          "name": "yandex",
+          "ok": true,
+          "latency_seconds": 5.54
+        },
+        {
+          "name": "instagram",
+          "ok": true,
+          "latency_seconds": 2.23
+        },
+        {
+          "name": "spotify",
+          "ok": true,
+          "latency_seconds": 2.01
+        },
+        {
+          "name": "pinterest",
+          "ok": true,
+          "latency_seconds": 1.96
+        },
+        {
+          "name": "vk",
+          "ok": false,
+          "latency_seconds": 0.0
+        },
+        {
+          "name": "twitch",
+          "ok": true,
+          "latency_seconds": 5.44
+        },
+        {
+          "name": "twitter",
+          "ok": false,
+          "latency_seconds": 2.73
+        },
+        {
+          "name": "facebook",
+          "ok": true,
+          "latency_seconds": 4.71
+        },
+        {
+          "name": "youtube",
+          "ok": true,
+          "latency_seconds": 4.22
+        },
+        {
+          "name": "tiktok",
+          "ok": true,
+          "latency_seconds": 2.29
+        }
+      ]
+    },
     "created_at": "2026-02-16T05:49:44",
-    "updated_at": "2026-02-16T05:49:44"
+    "updated_at": "2026-02-19T01:37:53"
   },
   {
     "id": "18bdb4716d224fc0a5fce7a3ba33f084",
@@ -326,13 +212,87 @@
     "password": "cb3cd1dbc6bef765",
     "region": null,
     "type": "publish",
-    "status": "active",
-    "last_checked_at": null,
-    "last_latency_ms": null,
+    "status": "slow",
+    "last_checked_at": "2026-02-19T01:37:48",
+    "last_latency_ms": 4540,
     "last_error": null,
-    "last_check_result": null,
+    "last_check_result": {
+      "success": true,
+      "status": "slow",
+      "message": "代理深度检测完成 (评分=3.4, 解锁=8/11, 延迟=4540ms)",
+      "task_id": "b4f7acc9-aeb5-4a04-b47e-4b60b1d20f31",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "dsn": "userID-2608-orderid-202796-region-any:cb3cd1dbc6bef765@asdata.lumidaili.com:10000",
+      "protocol_layer": "http",
+      "real_ip": "138.59.125.102",
+      "latency_seconds": 4.54,
+      "latency_ms": 4540,
+      "score": 3.4,
+      "proxy_type": "Mobile",
+      "country": "Brazil",
+      "region": "Mato Grosso do Sul",
+      "city": "Campo Grande",
+      "services": [
+        {
+          "name": "spotify",
+          "ok": true,
+          "latency_seconds": 4.46
+        },
+        {
+          "name": "yandex",
+          "ok": true,
+          "latency_seconds": 9.68
+        },
+        {
+          "name": "twitch",
+          "ok": true,
+          "latency_seconds": 11.11
+        },
+        {
+          "name": "twitter",
+          "ok": false,
+          "latency_seconds": 5.48
+        },
+        {
+          "name": "google",
+          "ok": true,
+          "latency_seconds": 6.92
+        },
+        {
+          "name": "instagram",
+          "ok": true,
+          "latency_seconds": 7.79
+        },
+        {
+          "name": "youtube",
+          "ok": true,
+          "latency_seconds": 7.18
+        },
+        {
+          "name": "tiktok",
+          "ok": false,
+          "latency_seconds": 0.0
+        },
+        {
+          "name": "pinterest",
+          "ok": true,
+          "latency_seconds": 4.76
+        },
+        {
+          "name": "vk",
+          "ok": false,
+          "latency_seconds": 0.0
+        },
+        {
+          "name": "facebook",
+          "ok": true,
+          "latency_seconds": 9.27
+        }
+      ]
+    },
     "created_at": "2026-02-16T05:49:44",
-    "updated_at": "2026-02-16T05:49:44"
+    "updated_at": "2026-02-19T01:37:48"
   },
   {
     "id": "4ca923655da64e2386e03f1db51e3fd1",
@@ -343,12 +303,369 @@
     "password": "330d976b7d0c23e4",
     "region": null,
     "type": "publish",
-    "status": "active",
-    "last_checked_at": null,
+    "status": "dead",
+    "last_checked_at": "2026-02-19T02:21:12",
     "last_latency_ms": null,
-    "last_error": null,
-    "last_check_result": null,
+    "last_error": "在 checkerproxy 超时时间内未收到检测结果",
+    "last_check_result": {
+      "success": false,
+      "status": "dead",
+      "message": "在 checkerproxy 超时时间内未收到检测结果",
+      "task_id": "452fc59c-2010-4f7f-84b7-f1b3540bba59",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "services": [],
+      "error": null
+    },
     "created_at": "2026-02-16T05:49:44",
-    "updated_at": "2026-02-16T05:49:44"
+    "updated_at": "2026-02-19T02:21:12"
+  },
+  {
+    "id": "1c9e5b9709934a38938a45236ee04931",
+    "ip": "usdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-201875-region-us",
+    "password": "59751a2451fa4c0a",
+    "region": null,
+    "type": "monitor",
+    "status": "slow",
+    "last_checked_at": "2026-02-19T02:35:39",
+    "last_latency_ms": 2300,
+    "last_error": null,
+    "last_check_result": {
+      "success": true,
+      "status": "slow",
+      "message": "代理深度检测完成 (评分=1.6, 解锁=9/11, 延迟=2300ms)",
+      "task_id": "017c0e17-5133-4ebe-94ec-a7b51f09c2ec",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "dsn": "userID-2608-orderid-201875-region-us:59751a2451fa4c0a@usdata.lumidaili.com:10000",
+      "protocol_layer": "http",
+      "real_ip": "73.20.167.15",
+      "latency_seconds": 2.3,
+      "latency_ms": 2300,
+      "score": 1.6,
+      "proxy_type": "Corporate",
+      "country": "United States",
+      "region": "Georgia",
+      "city": "Elberton",
+      "services": [
+        {
+          "name": "spotify",
+          "ok": true,
+          "latency_seconds": 1.54
+        },
+        {
+          "name": "twitch",
+          "ok": true,
+          "latency_seconds": 3.45
+        },
+        {
+          "name": "pinterest",
+          "ok": true,
+          "latency_seconds": 1.48
+        },
+        {
+          "name": "twitter",
+          "ok": false,
+          "latency_seconds": 2.31
+        },
+        {
+          "name": "vk",
+          "ok": true,
+          "latency_seconds": 1.73
+        },
+        {
+          "name": "instagram",
+          "ok": true,
+          "latency_seconds": 1.27
+        },
+        {
+          "name": "yandex",
+          "ok": true,
+          "latency_seconds": 4.05
+        },
+        {
+          "name": "google",
+          "ok": true,
+          "latency_seconds": 2.58
+        },
+        {
+          "name": "tiktok",
+          "ok": true,
+          "latency_seconds": 3.98
+        },
+        {
+          "name": "facebook",
+          "ok": false,
+          "latency_seconds": 2.15
+        },
+        {
+          "name": "youtube",
+          "ok": true,
+          "latency_seconds": 3.6
+        }
+      ],
+      "error": null
+    },
+    "created_at": "2026-02-19T02:35:05",
+    "updated_at": "2026-02-19T02:35:39"
+  },
+  {
+    "id": "047e9b69303a4a1299edbbbaff44ffe9",
+    "ip": "asdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-18098-region-us",
+    "password": "330d976b7d0c23e4",
+    "region": null,
+    "type": "monitor",
+    "status": "dead",
+    "last_checked_at": "2026-02-19T02:35:17",
+    "last_latency_ms": null,
+    "last_error": "代理检测失败: Unauthorized",
+    "last_check_result": {
+      "success": false,
+      "status": "dead",
+      "message": "代理检测失败: Unauthorized",
+      "task_id": "5082c660-4466-4a72-b538-5a9ae09d1042",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "dsn": "userID-2608-orderid-18098-region-us:330d976b7d0c23e4@asdata.lumidaili.com:10000",
+      "protocol_layer": "http",
+      "real_ip": null,
+      "latency_seconds": null,
+      "latency_ms": null,
+      "score": 0,
+      "proxy_type": null,
+      "country": null,
+      "region": null,
+      "city": null,
+      "services": [],
+      "error": "Unauthorized"
+    },
+    "created_at": "2026-02-19T02:35:05",
+    "updated_at": "2026-02-19T02:35:17"
+  },
+  {
+    "id": "9b3a4eac3d53476ab9f3aab69eeb9b42",
+    "ip": "asdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-202796-region-us",
+    "password": "cb3cd1dbc6bef765",
+    "region": null,
+    "type": "monitor",
+    "status": "slow",
+    "last_checked_at": "2026-02-19T02:35:39",
+    "last_latency_ms": 2620,
+    "last_error": null,
+    "last_check_result": {
+      "success": true,
+      "status": "slow",
+      "message": "代理深度检测完成 (评分=1.2, 解锁=7/11, 延迟=2620ms)",
+      "task_id": "016475e0-f639-4f9e-993e-5c4ccf5e2038",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "dsn": "userID-2608-orderid-202796-region-us:cb3cd1dbc6bef765@asdata.lumidaili.com:10000",
+      "protocol_layer": "http",
+      "real_ip": "68.98.119.205",
+      "latency_seconds": 2.62,
+      "latency_ms": 2620,
+      "score": 1.2,
+      "proxy_type": "Residential",
+      "country": "United States",
+      "region": "Arizona",
+      "city": "Casa Grande",
+      "services": [
+        {
+          "name": "pinterest",
+          "ok": true,
+          "latency_seconds": 2.05
+        },
+        {
+          "name": "google",
+          "ok": true,
+          "latency_seconds": 4.67
+        },
+        {
+          "name": "tiktok",
+          "ok": false,
+          "latency_seconds": 0.0
+        },
+        {
+          "name": "yandex",
+          "ok": true,
+          "latency_seconds": 5.09
+        },
+        {
+          "name": "spotify",
+          "ok": true,
+          "latency_seconds": 1.84
+        },
+        {
+          "name": "twitter",
+          "ok": false,
+          "latency_seconds": 1.9
+        },
+        {
+          "name": "facebook",
+          "ok": false,
+          "latency_seconds": 0.0
+        },
+        {
+          "name": "youtube",
+          "ok": true,
+          "latency_seconds": 4.08
+        },
+        {
+          "name": "vk",
+          "ok": false,
+          "latency_seconds": 0.0
+        },
+        {
+          "name": "instagram",
+          "ok": true,
+          "latency_seconds": 2.01
+        },
+        {
+          "name": "twitch",
+          "ok": true,
+          "latency_seconds": 4.05
+        }
+      ],
+      "error": null
+    },
+    "created_at": "2026-02-19T02:35:05",
+    "updated_at": "2026-02-19T02:35:39"
+  },
+  {
+    "id": "c3038cca08fc4400afa88c1662eac855",
+    "ip": "asdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-202796-region-any",
+    "password": "cb3cd1dbc6bef765",
+    "region": null,
+    "type": "monitor",
+    "status": "slow",
+    "last_checked_at": "2026-02-19T02:35:45",
+    "last_latency_ms": 3070,
+    "last_error": null,
+    "last_check_result": {
+      "success": true,
+      "status": "slow",
+      "message": "代理深度检测完成 (评分=1.4, 解锁=8/11, 延迟=3070ms)",
+      "task_id": "1faf33dd-8212-4a05-8d60-fc611fc7ee71",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "dsn": "userID-2608-orderid-202796-region-any:cb3cd1dbc6bef765@asdata.lumidaili.com:10000",
+      "protocol_layer": "http",
+      "real_ip": "86.166.97.25",
+      "latency_seconds": 3.07,
+      "latency_ms": 3070,
+      "score": 1.4,
+      "proxy_type": "Corporate",
+      "country": "United Kingdom",
+      "region": "England",
+      "city": "Wembley",
+      "services": [
+        {
+          "name": "tiktok",
+          "ok": false,
+          "latency_seconds": 2.86
+        },
+        {
+          "name": "facebook",
+          "ok": false,
+          "latency_seconds": 0.0
+        },
+        {
+          "name": "twitter",
+          "ok": false,
+          "latency_seconds": 2.4
+        },
+        {
+          "name": "pinterest",
+          "ok": true,
+          "latency_seconds": 2.78
+        },
+        {
+          "name": "yandex",
+          "ok": true,
+          "latency_seconds": 6.79
+        },
+        {
+          "name": "google",
+          "ok": true,
+          "latency_seconds": 5.22
+        },
+        {
+          "name": "vk",
+          "ok": true,
+          "latency_seconds": 4.06
+        },
+        {
+          "name": "instagram",
+          "ok": true,
+          "latency_seconds": 6.09
+        },
+        {
+          "name": "spotify",
+          "ok": true,
+          "latency_seconds": 2.04
+        },
+        {
+          "name": "youtube",
+          "ok": true,
+          "latency_seconds": 4.45
+        },
+        {
+          "name": "twitch",
+          "ok": true,
+          "latency_seconds": 5.57
+        }
+      ],
+      "error": null
+    },
+    "created_at": "2026-02-19T02:35:05",
+    "updated_at": "2026-02-19T02:35:45"
+  },
+  {
+    "id": "bad2a6d7cb6f43ab91b210d0135fb802",
+    "ip": "usdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-18098-region-us",
+    "password": "330d976b7d0c23e4",
+    "region": null,
+    "type": "monitor",
+    "status": "dead",
+    "last_checked_at": "2026-02-19T02:35:16",
+    "last_latency_ms": null,
+    "last_error": "代理检测失败: Unauthorized",
+    "last_check_result": {
+      "success": false,
+      "status": "dead",
+      "message": "代理检测失败: Unauthorized",
+      "task_id": "315af0f5-4b56-415b-b748-15556dbde2ba",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "dsn": "userID-2608-orderid-18098-region-us:330d976b7d0c23e4@usdata.lumidaili.com:10000",
+      "protocol_layer": "http",
+      "real_ip": null,
+      "latency_seconds": null,
+      "latency_ms": null,
+      "score": 0,
+      "proxy_type": null,
+      "country": null,
+      "region": null,
+      "city": null,
+      "services": [],
+      "error": "Unauthorized"
+    },
+    "created_at": "2026-02-19T02:35:05",
+    "updated_at": "2026-02-19T02:35:16"
   }
 ]

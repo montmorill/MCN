@@ -4,10 +4,15 @@ import {
   ChevronDown,
   Circle,
   CircleAlert,
+  Link2,
+  Link2Off,
+  Loader2,
   Plus,
+  ShieldCheck,
   SlidersHorizontal,
   Trash2,
   UserRound,
+  Wifi,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,7 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
-type AccountStatus = "active" | "suspended" | "disabled"
+type AccountStatus = "active" | "abnormal" | "unverified"
 
 type AccountItem = {
   id: string
@@ -62,6 +67,39 @@ type SingleAccountForm = {
   emailPassword: string
 }
 
+// ---------- 代理绑定相关类型 ----------
+
+type ProxyItem = {
+  id: string
+  ip: string
+  port: number
+  protocol: string
+  type: string
+  status: string
+  username?: string | null
+}
+
+type BindingItem = {
+  account_uid: string
+  proxy_id: string
+  proxy_label?: string | null
+  proxy_status?: string | null
+}
+
+type BindingVerifyResult = {
+  success: boolean
+  account: string
+  proxy: string
+  summary: string
+  exit_ip?: string | null
+  twitter?: {
+    success: boolean
+    status: string
+    message: string
+    latency_ms?: number | null
+  } | null
+}
+
 type AccountDrawer = {
   id: AccountStatus
   label: string
@@ -78,21 +116,21 @@ const accountDrawers: AccountDrawer[] = [
     label: "正常账号",
     icon: CheckCircle2,
     emptyTitle: "暂无正常账号",
-    emptyDescription: "状态正常的账号会显示在这里。",
+    emptyDescription: "验证通过的账号会显示在这里。",
   },
   {
-    id: "suspended",
-    label: "风控账号",
+    id: "abnormal",
+    label: "异常账号",
     icon: CircleAlert,
-    emptyTitle: "暂无风控账号",
-    emptyDescription: "触发风控或限制的账号会显示在这里。",
+    emptyTitle: "暂无异常账号",
+    emptyDescription: "被封禁、锁定或不可用的账号会显示在这里。",
   },
   {
-    id: "disabled",
-    label: "停用账号",
+    id: "unverified",
+    label: "待验证账号",
     icon: CircleAlert,
-    emptyTitle: "暂无停用账号",
-    emptyDescription: "手动停用或失效的账号会显示在这里。",
+    emptyTitle: "暂无待验证账号",
+    emptyDescription: "新导入的账号会显示在这里，验证后自动归类。",
   },
 ]
 
@@ -109,8 +147,8 @@ function createDefaultSingleForm(): SingleAccountForm {
 
 function getStatusLabel(status: string): string {
   if (status === "active") return "正常"
-  if (status === "suspended") return "风控"
-  if (status === "disabled") return "停用"
+  if (status === "abnormal") return "异常"
+  if (status === "unverified") return "待验证"
   return status || "未知"
 }
 
@@ -139,8 +177,8 @@ function formatDateTime(value?: string): string {
 export function AccountMainContent() {
   const [openMap, setOpenMap] = useState<Record<AccountStatus, boolean>>({
     active: true,
-    suspended: false,
-    disabled: false,
+    abnormal: false,
+    unverified: true,
   })
   const [accountItems, setAccountItems] = useState<AccountItem[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
@@ -166,6 +204,17 @@ export function AccountMainContent() {
   const [isBatchDeleting, setIsBatchDeleting] = useState(false)
   const [isVerifyingStatus, setIsVerifyingStatus] = useState(false)
 
+  // ---------- 代理绑定相关 state ----------
+  const [publishProxies, setPublishProxies] = useState<ProxyItem[]>([])
+  const [bindings, setBindings] = useState<BindingItem[]>([])
+  const [selectedProxyId, setSelectedProxyId] = useState<string | null>(null)
+  const [isBinding, setIsBinding] = useState(false)
+  const [isUnbinding, setIsUnbinding] = useState(false)
+  const [isVerifyingBinding, setIsVerifyingBinding] = useState(false)
+  const [bindingVerifyResult, setBindingVerifyResult] = useState<BindingVerifyResult | null>(null)
+  const [isBatchBinding, setIsBatchBinding] = useState(false)
+  const [isBatchVerifyingBinding, setIsBatchVerifyingBinding] = useState(false)
+
   const loadAccounts = useCallback(async () => {
     setLoading(true)
     setErrorMessage(null)
@@ -188,11 +237,193 @@ export function AccountMainContent() {
     void loadAccounts()
   }, [loadAccounts])
 
+  // ---------- 加载发布代理列表 + 绑定关系 ----------
+
+  const loadProxiesAndBindings = useCallback(async () => {
+    try {
+      const [proxyRes, bindingRes] = await Promise.all([
+        fetch(`${API_BASE}/api/proxies?type=publish`),
+        fetch(`${API_BASE}/api/bindings`),
+      ])
+      const proxyPayload = await proxyRes.json()
+      const bindingPayload = await bindingRes.json()
+
+      if (proxyPayload?.success) {
+        // 只取状态可用的发布代理（active / slow）
+        const proxies: ProxyItem[] = (proxyPayload.proxies ?? []).filter(
+          (p: ProxyItem) => p.type === "publish" && (p.status === "active" || p.status === "slow")
+        )
+        setPublishProxies(proxies)
+      }
+      if (bindingPayload?.success) {
+        setBindings(bindingPayload.bindings ?? [])
+      }
+    } catch {
+      // 静默失败，不影响主流程
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadProxiesAndBindings()
+  }, [loadProxiesAndBindings])
+
+  // 当前选中账号的绑定信息
+  const currentBinding = useMemo(
+    () => bindings.find((b) => b.account_uid === selectedAccountId) ?? null,
+    [bindings, selectedAccountId]
+  )
+
+  // 选中账号变化时，重置绑定相关 UI 状态
+  useEffect(() => {
+    setBindingVerifyResult(null)
+    setSelectedProxyId(currentBinding?.proxy_id ?? null)
+  }, [selectedAccountId, currentBinding])
+
+  // ---------- 绑定操作 ----------
+
+  const handleBindProxy = async () => {
+    if (!selectedAccountId || !selectedProxyId) return
+    try {
+      setIsBinding(true)
+      setErrorMessage(null)
+      const response = await fetch(`${API_BASE}/api/bindings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ account_id: selectedAccountId, proxy_id: selectedProxyId }),
+      })
+      const payload = await response.json()
+      if (!payload?.success) throw new Error(payload?.message || "绑定失败")
+      setStatusMessage(payload.message)
+      await loadProxiesAndBindings()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "绑定失败")
+    } finally {
+      setIsBinding(false)
+    }
+  }
+
+  const handleUnbindProxy = async () => {
+    if (!selectedAccountId) return
+    try {
+      setIsUnbinding(true)
+      setErrorMessage(null)
+      const response = await fetch(`${API_BASE}/api/bindings/${selectedAccountId}`, {
+        method: "DELETE",
+      })
+      const payload = await response.json()
+      if (!payload?.success) throw new Error(payload?.message || "解绑失败")
+      setStatusMessage(payload.message)
+      setSelectedProxyId(null)
+      setBindingVerifyResult(null)
+      await loadProxiesAndBindings()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "解绑失败")
+    } finally {
+      setIsUnbinding(false)
+    }
+  }
+
+  const handleVerifyBinding = async () => {
+    if (!selectedAccountId || !currentBinding) return
+    try {
+      setIsVerifyingBinding(true)
+      setBindingVerifyResult(null)
+      const response = await fetch(
+        `${API_BASE}/api/bindings/verify-by-account/${selectedAccountId}`,
+        { method: "POST" }
+      )
+      const payload = await response.json()
+      if (!payload?.success) throw new Error(payload?.message || "验证失败")
+      setBindingVerifyResult(payload.verification)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "绑定验证失败")
+    } finally {
+      setIsVerifyingBinding(false)
+    }
+  }
+
+  // ---------- 批量绑定空闲代理 ----------
+
+  const handleBatchAutoBind = async () => {
+    if (selectedAccountIds.length === 0) {
+      setErrorMessage("请先选择要绑定的账号")
+      return
+    }
+    try {
+      setIsBatchBinding(true)
+      setErrorMessage(null)
+      setStatusMessage(null)
+      const response = await fetch(`${API_BASE}/api/bindings/batch-auto-bind`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ account_ids: selectedAccountIds }),
+      })
+      const payload = await response.json()
+      if (!payload?.success && payload?.bound_count === 0) {
+        throw new Error(payload?.message || "批量绑定失败")
+      }
+      setStatusMessage(payload.message)
+      // 打印详细结果到控制台
+      console.group("[批量绑定] 结果")
+      ;(payload.results ?? []).forEach((r: Record<string, unknown>, i: number) => {
+        if (r.success) {
+          console.log(`[${i + 1}] ✅ ${r.account_name} → ${r.proxy_label}`)
+        } else {
+          console.error(`[${i + 1}] ❌ ${r.account_name}: ${r.message}`)
+        }
+      })
+      console.groupEnd()
+      await loadProxiesAndBindings()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "批量绑定失败")
+    } finally {
+      setIsBatchBinding(false)
+    }
+  }
+
+  // ---------- 批量验证绑定状态 ----------
+
+  const handleBatchVerifyBinding = async () => {
+    if (selectedAccountIds.length === 0) {
+      setErrorMessage("请先选择要验证的账号")
+      return
+    }
+    try {
+      setIsBatchVerifyingBinding(true)
+      setErrorMessage(null)
+      setStatusMessage(null)
+      const response = await fetch(`${API_BASE}/api/bindings/batch-verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ account_ids: selectedAccountIds }),
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || "批量验证失败")
+      }
+      setStatusMessage(payload.message)
+      // 打印详细结果到控制台
+      console.group("[批量验证绑定] 结果")
+      ;(payload.results ?? []).forEach((r: Record<string, unknown>, i: number) => {
+        if (r.success) {
+          console.log(`[${i + 1}] ✅ ${r.account_name}: ${r.summary}`)
+        } else {
+          console.error(`[${i + 1}] ❌ ${r.account_name}: ${r.summary}`)
+        }
+      })
+      console.groupEnd()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "批量验证失败")
+    } finally {
+      setIsBatchVerifyingBinding(false)
+    }
+  }
+
   const accountsByStatus = useMemo(
     () => ({
       active: accountItems.filter((item) => item.status === "active"),
-      suspended: accountItems.filter((item) => item.status === "suspended"),
-      disabled: accountItems.filter((item) => item.status === "disabled"),
+      abnormal: accountItems.filter((item) => item.status === "abnormal"),
+      unverified: accountItems.filter((item) => item.status === "unverified"),
     }),
     [accountItems]
   )
@@ -516,6 +747,30 @@ export function AccountMainContent() {
                     : `删除选中${selectedAccountIds.length > 0 ? ` (${selectedAccountIds.length})` : ""}`}
                 </span>
               </button>
+              <button
+                onClick={() => void handleBatchAutoBind()}
+                disabled={selectedAccountIds.length === 0 || isBatchBinding || isBatchDeleting}
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3.5 py-1 text-[13px] font-medium text-emerald-300 transition-colors duration-100 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Link2 className="size-3.5" />
+                <span>
+                  {isBatchBinding
+                    ? "绑定中..."
+                    : `绑定代理${selectedAccountIds.length > 0 ? ` (${selectedAccountIds.length})` : ""}`}
+                </span>
+              </button>
+              <button
+                onClick={() => void handleBatchVerifyBinding()}
+                disabled={selectedAccountIds.length === 0 || isBatchVerifyingBinding || isBatchDeleting}
+                className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/10 px-3.5 py-1 text-[13px] font-medium text-blue-300 transition-colors duration-100 hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ShieldCheck className="size-3.5" />
+                <span>
+                  {isBatchVerifyingBinding
+                    ? "验证中..."
+                    : `验证绑定${selectedAccountIds.length > 0 ? ` (${selectedAccountIds.length})` : ""}`}
+                </span>
+              </button>
             </>
           )}
           <DropdownMenu>
@@ -639,6 +894,14 @@ export function AccountMainContent() {
                                           <span className="truncate text-zinc-500">
                                             {item.email || "未填写邮箱"}
                                           </span>
+                                          {(() => {
+                                            const b = bindings.find((b) => b.account_uid === item.id)
+                                            return b ? (
+                                              <span className="ml-1 shrink-0 rounded bg-emerald-500/15 px-1 py-0.5 text-[10px] text-emerald-400">
+                                                <Link2 className="mr-0.5 inline size-2.5" />代理
+                                              </span>
+                                            ) : null
+                                          })()}
                                         </div>
                                       </div>
                                       <span className="shrink-0 text-xs tabular-nums text-zinc-500">
@@ -733,6 +996,128 @@ export function AccountMainContent() {
                           : "-"}
                       </span>
                     </div>
+                  </div>
+
+                  {/* ====== 代理绑定区块 ====== */}
+                  <div className="mt-5 rounded-lg border border-white/[0.08] bg-black/35 p-3">
+                    <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-zinc-500">
+                      <Wifi className="size-3" />
+                      代理绑定
+                    </p>
+
+                    {/* 当前绑定状态 */}
+                    <div className="mt-2.5 text-[12px] leading-5">
+                      {currentBinding ? (
+                        <div className="flex items-center gap-1.5 text-emerald-400">
+                          <Link2 className="size-3" />
+                          <span>已绑定: {currentBinding.proxy_label ?? currentBinding.proxy_id}</span>
+                          {currentBinding.proxy_status && (
+                            <span className={cn(
+                              "ml-1 rounded px-1 py-0.5 text-[10px]",
+                              currentBinding.proxy_status === "active"
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : "bg-amber-500/20 text-amber-400"
+                            )}>
+                              {currentBinding.proxy_status}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-zinc-500">
+                          <Link2Off className="size-3" />
+                          <span>未绑定代理</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 代理选择下拉 */}
+                    <div className="mt-2.5">
+                      <select
+                        className="h-7 w-full rounded border border-white/[0.12] bg-zinc-900 px-2 text-[12px] text-zinc-200 outline-none focus:border-zinc-500"
+                        value={selectedProxyId ?? ""}
+                        onChange={(e) => setSelectedProxyId(e.target.value || null)}
+                      >
+                        <option value="">选择发布代理...</option>
+                        {publishProxies.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.protocol}://{p.ip}:{p.port} ({p.status})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 操作按钮 */}
+                    <div className="mt-2.5 flex gap-2">
+                      <Button
+                        size="sm"
+                        className="h-7 rounded-full bg-white px-3 text-[11px] text-black hover:bg-zinc-200"
+                        disabled={!selectedProxyId || isBinding}
+                        onClick={() => void handleBindProxy()}
+                      >
+                        {isBinding ? (
+                          <><Loader2 className="mr-1 size-3 animate-spin" />绑定中</>
+                        ) : (
+                          <><Link2 className="mr-1 size-3" />绑定</>
+                        )}
+                      </Button>
+                      {currentBinding && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 rounded-full border-red-400/40 bg-red-500/10 px-3 text-[11px] text-red-300 hover:bg-red-500/20"
+                            disabled={isUnbinding}
+                            onClick={() => void handleUnbindProxy()}
+                          >
+                            {isUnbinding ? (
+                              <><Loader2 className="mr-1 size-3 animate-spin" />解绑中</>
+                            ) : (
+                              <><Link2Off className="mr-1 size-3" />解绑</>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 rounded-full border-blue-400/40 bg-blue-500/10 px-3 text-[11px] text-blue-300 hover:bg-blue-500/20"
+                            disabled={isVerifyingBinding}
+                            onClick={() => void handleVerifyBinding()}
+                          >
+                            {isVerifyingBinding ? (
+                              <><Loader2 className="mr-1 size-3 animate-spin" />验证中</>
+                            ) : (
+                              <><ShieldCheck className="mr-1 size-3" />验证绑定</>
+                            )}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* 验证结果展示 */}
+                    {bindingVerifyResult && (
+                      <div className={cn(
+                        "mt-2.5 rounded border p-2 text-[11px] leading-4",
+                        bindingVerifyResult.success
+                          ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+                          : "border-red-400/30 bg-red-500/10 text-red-300"
+                      )}>
+                        <p className="font-medium">{bindingVerifyResult.summary}</p>
+                        {bindingVerifyResult.exit_ip && (
+                          <p className="mt-1 text-zinc-400">
+                            出口IP: {bindingVerifyResult.exit_ip}
+                          </p>
+                        )}
+                        {bindingVerifyResult.twitter && (
+                          <p className="mt-1 text-zinc-400">
+                            Twitter: {bindingVerifyResult.twitter.status} - {bindingVerifyResult.twitter.message}
+                            {bindingVerifyResult.twitter.latency_ms != null && (
+                              <span className="ml-1 text-zinc-500">
+                                ({bindingVerifyResult.twitter.latency_ms}ms)
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-5 min-h-0 flex-1 overflow-auto rounded-lg border border-white/[0.08] bg-black/35 p-3">

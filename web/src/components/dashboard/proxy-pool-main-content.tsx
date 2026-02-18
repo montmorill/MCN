@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react"
 import {
+  Circle,
   CheckCircle2,
   ChevronDown,
   CircleAlert,
   Clock3,
   Plus,
-  ShieldCheck,
   SlidersHorizontal,
   Trash2,
   Wifi,
@@ -25,12 +25,19 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
 type ProxyPoolType = "publish" | "monitor"
 type ProxyProtocol = "http" | "https" | "socks5"
 type ProxyStatus = "active" | "dead" | "slow" | "disabled"
-type StatusFilter = "all" | ProxyStatus
+type MonitorProxyDrawerId = "normal" | "abnormal" | "pending"
+type ProxyDrawerId = MonitorProxyDrawerId
 
 type ProxyServiceUnlock = {
   name?: string
@@ -51,6 +58,8 @@ type ProxyCheckResult = {
   region?: string | null
   city?: string | null
   services?: ProxyServiceUnlock[]
+  is_dead?: boolean
+  error?: string | null
 }
 
 type ProxyRecord = {
@@ -81,7 +90,7 @@ type SingleFormState = {
 }
 
 type ProxyDrawer = {
-  id: ProxyStatus
+  id: ProxyDrawerId
   label: string
   icon: ComponentType<{ className?: string }>
   emptyTitle: string
@@ -96,46 +105,27 @@ const protocolOptions: { id: ProxyProtocol; label: string }[] = [
   { id: "socks5", label: "SOCKS5" },
 ]
 
-const statusFilters: {
-  id: StatusFilter
-  label: string
-  icon: ComponentType<{ className?: string }>
-}[] = [
-  { id: "all", label: "全部", icon: SlidersHorizontal },
-  { id: "active", label: "可用", icon: CheckCircle2 },
-  { id: "slow", label: "较慢", icon: Clock3 },
-  { id: "dead", label: "不可用", icon: CircleAlert },
-  { id: "disabled", label: "禁用", icon: ShieldCheck },
-]
-
-const proxyDrawers: ProxyDrawer[] = [
+const poolProxyDrawers: ProxyDrawer[] = [
   {
-    id: "active",
-    label: "正常代理",
+    id: "normal",
+    label: "正常",
     icon: CheckCircle2,
     emptyTitle: "暂无正常代理",
-    emptyDescription: "连通和延迟都正常的代理会显示在这里。",
+    emptyDescription: "检测完成且状态正常的代理会显示在这里。",
   },
   {
-    id: "slow",
-    label: "异常代理（较慢）",
-    icon: Clock3,
-    emptyTitle: "暂无较慢代理",
-    emptyDescription: "检测可连通但延迟偏高的代理会显示在这里。",
-  },
-  {
-    id: "dead",
-    label: "异常代理（不可用）",
+    id: "abnormal",
+    label: "异常",
     icon: CircleAlert,
-    emptyTitle: "暂无不可用代理",
-    emptyDescription: "检测失败或不可连通的代理会显示在这里。",
+    emptyTitle: "暂无异常代理",
+    emptyDescription: "检测后状态异常（不可用/较慢/停用）的代理会显示在这里。",
   },
   {
-    id: "disabled",
-    label: "停用代理",
-    icon: ShieldCheck,
-    emptyTitle: "暂无停用代理",
-    emptyDescription: "手动停用的代理会显示在这里。",
+    id: "pending",
+    label: "待检测",
+    icon: Clock3,
+    emptyTitle: "暂无待检测代理",
+    emptyDescription: "尚未执行健康检测的代理会显示在这里。",
   },
 ]
 
@@ -175,6 +165,41 @@ function formatResolvedLocation(result?: ProxyCheckResult | null): string {
     .map((item) => String(item || "").trim())
     .filter(Boolean)
   return parts.length > 0 ? parts.join(" / ") : "-"
+}
+
+function isPendingDetection(proxy: ProxyRecord): boolean {
+  return !String(proxy.last_checked_at || "").trim()
+}
+
+function resolveTwitterUnlockState(
+  result?: ProxyCheckResult | null
+): "ok" | "fail" | "unknown" {
+  const services = Array.isArray(result?.services) ? result.services : []
+  const twitterService = services.find((item) =>
+    String(item?.name || "")
+      .trim()
+      .toLowerCase()
+      .includes("twitter")
+  )
+  if (!twitterService) return "unknown"
+  return twitterService.ok ? "ok" : "fail"
+}
+
+function isProxyDead(proxy: ProxyRecord): boolean {
+  if (proxy.last_check_result?.is_dead) return true
+  if (proxy.last_check_result?.error) return true
+  if (proxy.status === "dead") return true
+  return false
+}
+
+function extractFriendlyError(proxy: ProxyRecord): string {
+  const result = proxy.last_check_result
+  if (!result) return proxy.last_error || "未知错误"
+  const err = String(result.error || "").trim()
+  if (err) return err
+  const msg = String(result.message || "").trim()
+  if (msg) return msg
+  return proxy.last_error || "未知错误"
 }
 
 function createDefaultSingleForm(): SingleFormState {
@@ -221,17 +246,18 @@ function ProtocolSelector({
 
 export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) {
   const poolLabel = poolType === "publish" ? "发布代理池" : "监控代理池"
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
-  const [openMap, setOpenMap] = useState<Record<ProxyStatus, boolean>>({
-    active: true,
-    slow: false,
-    dead: false,
-    disabled: false,
+  const [openMap, setOpenMap] = useState<Record<ProxyDrawerId, boolean>>({
+    normal: true,
+    abnormal: false,
+    pending: false,
   })
   const [proxyItems, setProxyItems] = useState<ProxyRecord[]>([])
   const [selectedProxyId, setSelectedProxyId] = useState<string | null>(null)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedProxyIds, setSelectedProxyIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   const [singleOpen, setSingleOpen] = useState(false)
   const [batchOpen, setBatchOpen] = useState(false)
@@ -243,6 +269,8 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
   const [isSubmittingSingle, setIsSubmittingSingle] = useState(false)
   const [isSubmittingBatch, setIsSubmittingBatch] = useState(false)
   const [isTestingProxyId, setIsTestingProxyId] = useState<string | null>(null)
+  const [isBatchTesting, setIsBatchTesting] = useState(false)
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false)
   const [isDeletingProxyId, setIsDeletingProxyId] = useState<string | null>(null)
   const [batchResult, setBatchResult] = useState<string | null>(null)
 
@@ -268,17 +296,15 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
     void loadProxies()
   }, [loadProxies])
 
-  const visibleItems = useMemo(() => {
-    if (statusFilter === "all") return proxyItems
-    return proxyItems.filter((item) => item.status === statusFilter)
-  }, [proxyItems, statusFilter])
-
-  const proxiesByStatus = useMemo(
+  const monitorProxiesByStatus = useMemo(
     () => ({
-      active: proxyItems.filter((item) => item.status === "active"),
-      slow: proxyItems.filter((item) => item.status === "slow"),
-      dead: proxyItems.filter((item) => item.status === "dead"),
-      disabled: proxyItems.filter((item) => item.status === "disabled"),
+      normal: proxyItems.filter(
+        (item) => !isPendingDetection(item) && item.status === "active"
+      ),
+      abnormal: proxyItems.filter(
+        (item) => !isPendingDetection(item) && item.status !== "active"
+      ),
+      pending: proxyItems.filter((item) => isPendingDetection(item)),
     }),
     [proxyItems]
   )
@@ -289,12 +315,38 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
   const selectedUnlockServices = Array.isArray(selectedCheckResult?.services)
     ? selectedCheckResult.services
     : []
+  const allImportedProxyIds = useMemo(() => proxyItems.map((item) => item.id), [proxyItems])
+  const isAllSelected =
+    allImportedProxyIds.length > 0 &&
+    allImportedProxyIds.every((id) => selectedProxyIds.includes(id))
 
   useEffect(() => {
     if (selectedProxyId && !proxyItems.some((item) => item.id === selectedProxyId)) {
       setSelectedProxyId(null)
     }
   }, [proxyItems, selectedProxyId])
+
+  useEffect(() => {
+    if (!selectMode) {
+      setSelectedProxyIds([])
+      return
+    }
+    setSelectedProxyId(null)
+  }, [selectMode])
+
+  useEffect(() => {
+    setSelectedProxyIds((prev) => prev.filter((id) => proxyItems.some((item) => item.id === id)))
+  }, [proxyItems])
+
+  const toggleProxySelect = (proxyId: string) => {
+    setSelectedProxyIds((prev) =>
+      prev.includes(proxyId) ? prev.filter((id) => id !== proxyId) : [...prev, proxyId]
+    )
+  }
+
+  const handleToggleSelectAll = () => {
+    setSelectedProxyIds((prev) => (prev.length === allImportedProxyIds.length ? [] : allImportedProxyIds))
+  }
 
   const handleCreateSingle = async () => {
     const ip = singleForm.ip.trim()
@@ -419,6 +471,7 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
     try {
       setIsTestingProxyId(proxyId)
       setErrorMessage(null)
+      setStatusMessage(null)
       const response = await fetch(`${API_BASE}/api/proxies/${proxyId}/test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -439,49 +492,168 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
     }
   }
 
+  const handleTestSelectedProxies = async () => {
+    if (selectedProxyIds.length === 0) {
+      setErrorMessage("请先选择要检测的代理")
+      return
+    }
+
+    try {
+      setIsBatchTesting(true)
+      setErrorMessage(null)
+      setStatusMessage(null)
+
+      const results = await Promise.all(
+        selectedProxyIds.map(async (proxyId) => {
+          try {
+            const response = await fetch(`${API_BASE}/api/proxies/${proxyId}/test`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({}),
+            })
+            const payload = await response.json()
+            return {
+              proxyId,
+              success: Boolean(payload?.success),
+              message: String(payload?.message || "检测失败"),
+            }
+          } catch (error) {
+            return {
+              proxyId,
+              success: false,
+              message: error instanceof Error ? error.message : "检测失败",
+            }
+          }
+        })
+      )
+
+      const successCount = results.filter((item) => item.success).length
+      const failureCount = results.length - successCount
+      let message = `健康检测完成：成功 ${successCount} 条，失败 ${failureCount} 条。`
+      if (failureCount > 0) {
+        const preview = results
+          .filter((item) => !item.success)
+          .slice(0, 2)
+          .map((item) => `${item.proxyId.slice(0, 6)}... => ${item.message}`)
+          .join("；")
+        if (preview) {
+          message += ` 示例失败：${preview}`
+        }
+      }
+      setStatusMessage(message)
+      await loadProxies()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "批量健康检测失败")
+    } finally {
+      setIsBatchTesting(false)
+    }
+  }
+
+  const handleDeleteSelectedProxies = async () => {
+    if (selectedProxyIds.length === 0) {
+      setErrorMessage("请先选择要删除的代理")
+      return
+    }
+    const confirmed = window.confirm(`确认删除选中的 ${selectedProxyIds.length} 条代理吗？`)
+    if (!confirmed) return
+
+    try {
+      setIsBatchDeleting(true)
+      setErrorMessage(null)
+      setStatusMessage(null)
+
+      let successCount = 0
+      let failureCount = 0
+      for (const proxyId of selectedProxyIds) {
+        try {
+          const response = await fetch(`${API_BASE}/api/proxies/${proxyId}`, {
+            method: "DELETE",
+          })
+          const payload = await response.json()
+          if (response.ok && payload?.success) {
+            successCount++
+          } else {
+            failureCount++
+          }
+        } catch {
+          failureCount++
+        }
+      }
+
+      setSelectedProxyIds([])
+      setStatusMessage(`删除完成：成功 ${successCount} 条，失败 ${failureCount} 条。`)
+      await loadProxies()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "批量删除失败")
+    } finally {
+      setIsBatchDeleting(false)
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/[0.08] px-5">
         <div className="flex items-center gap-0.5">
-          <button className="mr-1 inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] px-3 py-1 text-[13px] font-medium text-zinc-300 transition-colors duration-100 hover:bg-white/[0.05]">
+          <button
+            onClick={() => setSelectMode((prev) => !prev)}
+            className={cn(
+              "mr-1 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-medium transition-colors duration-100",
+              selectMode
+                ? "border-white/[0.24] bg-white/[0.10] text-zinc-100"
+                : "border-white/[0.12] text-zinc-300 hover:bg-white/[0.05]"
+            )}
+          >
             <SlidersHorizontal className="size-3.5" />
-            <span>筛选</span>
+            <span>选择</span>
           </button>
-          {statusFilters.map((filter) => {
-            const isActive = statusFilter === filter.id
-            const Icon = filter.icon
-            return (
-              <button
-                key={filter.id}
-                onClick={() => setStatusFilter(filter.id)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium transition-colors duration-100",
-                  isActive
-                    ? "bg-white/[0.10] text-zinc-100"
-                    : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]"
-                )}
-              >
-                <Icon className="size-3.5" />
-                <span>{filter.label}</span>
-              </button>
-            )
-          })}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setBatchOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] px-3.5 py-1 text-[13px] font-medium text-zinc-200 transition-colors duration-100 hover:bg-white/[0.05]"
-          >
-            <Plus className="size-3.5" />
-            <span>批量添加代理</span>
-          </button>
-          <button
-            onClick={() => setSingleOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-[13px] font-medium text-black transition-colors duration-100 hover:bg-zinc-200"
-          >
-            <Plus className="size-3.5" />
-            <span>添加单个代理</span>
-          </button>
+          {selectMode && (
+            <>
+              <button
+                onClick={handleToggleSelectAll}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] px-3.5 py-1 text-[13px] font-medium text-zinc-200 transition-colors duration-100 hover:bg-white/[0.05]"
+              >
+                <span>{isAllSelected ? "取消全选" : "全选代理"}</span>
+              </button>
+              <button
+                onClick={() => void handleTestSelectedProxies()}
+                disabled={selectedProxyIds.length === 0 || isBatchTesting || isBatchDeleting}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] px-3.5 py-1 text-[13px] font-medium text-zinc-200 transition-colors duration-100 hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span>
+                  {isBatchTesting
+                    ? "检测中..."
+                    : `健康度检测${selectedProxyIds.length > 0 ? ` (${selectedProxyIds.length})` : ""}`}
+                </span>
+              </button>
+              <button
+                onClick={() => void handleDeleteSelectedProxies()}
+                disabled={selectedProxyIds.length === 0 || isBatchDeleting || isBatchTesting}
+                className="inline-flex items-center gap-1.5 rounded-full border border-red-400/25 px-3.5 py-1 text-[13px] font-medium text-red-300 transition-colors duration-100 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Trash2 className="size-3.5" />
+                <span>
+                  {isBatchDeleting
+                    ? "删除中..."
+                    : `删除选中${selectedProxyIds.length > 0 ? ` (${selectedProxyIds.length})` : ""}`}
+                </span>
+              </button>
+            </>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-[13px] font-medium text-black transition-colors duration-100 hover:bg-zinc-200">
+                <Plus className="size-3.5" />
+                <span>添加代理</span>
+                <ChevronDown className="size-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40 border-white/[0.12] bg-zinc-900 text-zinc-100">
+              <DropdownMenuItem onSelect={() => setSingleOpen(true)}>添加单个代理</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setBatchOpen(true)}>批量添加代理</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -490,26 +662,26 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
           {errorMessage}
         </div>
       )}
+      {statusMessage && (
+        <div className="border-b border-emerald-400/20 bg-emerald-500/10 px-5 py-2 text-xs text-emerald-300">
+          {statusMessage}
+        </div>
+      )}
 
       <main className="min-h-0 flex-1 overflow-hidden">
         <div className="flex h-full">
           <section className="min-w-0 flex-1 overflow-y-auto">
-            <div className="px-5 py-3 text-xs text-zinc-500">{poolLabel} · 共 {visibleItems.length} 条</div>
             {loading ? (
               <div className="px-5 text-sm text-zinc-400">加载中...</div>
-            ) : visibleItems.length === 0 ? (
+            ) : proxyItems.length === 0 ? (
               <div className="mx-5 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-sm text-zinc-400">
-                当前筛选下暂无代理记录。
+                暂无代理记录。
               </div>
             ) : (
               <>
-                {proxyDrawers.map((drawer) => {
+                {poolProxyDrawers.map((drawer) => {
                   const DrawerIcon = drawer.icon
-                  const shouldRenderDrawer =
-                    statusFilter === "all" || statusFilter === drawer.id
-                  if (!shouldRenderDrawer) return null
-
-                  const proxies = proxiesByStatus[drawer.id]
+                  const proxies = monitorProxiesByStatus[drawer.id]
                   const isOpen = Boolean(openMap[drawer.id])
                   return (
                     <Collapsible
@@ -531,6 +703,7 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
                             />
                             <DrawerIcon className="size-4 text-zinc-300" />
                             <span>{drawer.label}</span>
+                            <span className="text-zinc-500">({proxies.length})</span>
                           </span>
                         </button>
                       </CollapsibleTrigger>
@@ -548,30 +721,78 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
                             <ul className="divide-y divide-white/[0.05]">
                               {proxies.map((proxy) => {
                                 const isSelected = selectedProxyId === proxy.id
+                                const isChecked = selectedProxyIds.includes(proxy.id)
+                                const rowCheckResult = proxy.last_check_result
+                                const proxyIsDead = isProxyDead(proxy)
+                                const rowScore = rowCheckResult?.score
+                                const rowLatencyMs =
+                                  rowCheckResult?.latency_ms ?? proxy.last_latency_ms
+                                const twitterUnlockState =
+                                  resolveTwitterUnlockState(rowCheckResult)
                                 return (
                                   <li key={proxy.id}>
                                     <button
                                       type="button"
-                                      onClick={() =>
+                                      onClick={() => {
+                                        if (selectMode) {
+                                          toggleProxySelect(proxy.id)
+                                          return
+                                        }
                                         setSelectedProxyId((prev) =>
                                           prev === proxy.id ? null : proxy.id
                                         )
-                                      }
+                                      }}
                                       className={cn(
                                         "flex h-11 w-full items-center justify-between px-5 text-left transition-colors hover:bg-white/[0.025]",
-                                        isSelected && "bg-white/[0.05]"
+                                        (isSelected || (selectMode && isChecked)) && "bg-white/[0.05]"
                                       )}
                                     >
                                       <div className="min-w-0 pr-3">
-                                        <div className="flex items-center gap-2.5 truncate text-sm text-zinc-200">
+                                        <div className="flex min-w-0 items-center gap-2.5 text-sm text-zinc-200">
+                                          {selectMode &&
+                                            (isChecked ? (
+                                              <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />
+                                            ) : (
+                                              <Circle className="size-4 shrink-0 text-zinc-500" />
+                                            ))}
                                           <Wifi className="size-4 shrink-0 text-zinc-500" />
                                           <span className="truncate">
                                             {proxy.ip}:{proxy.port}
                                           </span>
                                           <span className="mx-1 text-zinc-600">·</span>
-                                          <span className="truncate text-zinc-500">
-                                            {String(proxy.protocol || "").toUpperCase()}
-                                          </span>
+                                          <div className="flex min-w-0 items-center gap-1 overflow-hidden">
+                                            {proxyIsDead ? (
+                                              <span className="inline-flex h-5 items-center rounded-full border border-red-400/35 bg-red-500/10 px-2 text-[10px] font-medium text-red-300">
+                                                无效
+                                              </span>
+                                            ) : (
+                                              <>
+                                                <span className="inline-flex h-5 items-center rounded-full border border-white/[0.18] bg-white/[0.06] px-2 text-[10px] text-zinc-300">
+                                                  评分 {rowScore ?? "-"}
+                                                </span>
+                                                <span className="inline-flex h-5 items-center rounded-full border border-white/[0.18] bg-white/[0.06] px-2 text-[10px] text-zinc-300">
+                                                  延迟 {rowLatencyMs != null ? `${rowLatencyMs}ms` : "-"}
+                                                </span>
+                                                <span
+                                                  className={cn(
+                                                    "inline-flex h-5 items-center rounded-full border px-2 text-[10px]",
+                                                    twitterUnlockState === "ok"
+                                                      ? "border-emerald-400/35 bg-emerald-500/10 text-emerald-300"
+                                                      : twitterUnlockState === "fail"
+                                                        ? "border-red-400/35 bg-red-500/10 text-red-300"
+                                                        : "border-white/[0.18] bg-white/[0.06] text-zinc-300"
+                                                  )}
+                                                >
+                                                  推特
+                                                  {twitterUnlockState === "ok"
+                                                    ? " 已解锁"
+                                                    : twitterUnlockState === "fail"
+                                                      ? " 未解锁"
+                                                      : " -"}
+                                                </span>
+                                              </>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
                                       <span className="shrink-0 text-xs tabular-nums text-zinc-500">
@@ -706,9 +927,11 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
                     </p>
                     <div className="mt-2 text-[12px] leading-5 text-zinc-400">
                       <p>
-                        {selectedCheckResult?.message ||
-                          selectedProxy.last_error ||
-                          "最近检测无错误"}
+                        {selectedCheckResult?.error
+                          ? `❌ ${extractFriendlyError(selectedProxy)}`
+                          : selectedCheckResult?.message ||
+                            selectedProxy.last_error ||
+                            "最近检测无错误"}
                       </p>
                       {selectedUnlockServices.length > 0 ? (
                         <div className="mt-2 space-y-1">
@@ -733,7 +956,8 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
                       onClick={() => void handleTestProxy(selectedProxy.id)}
                       disabled={
                         isTestingProxyId === selectedProxy.id ||
-                        isDeletingProxyId === selectedProxy.id
+                        isDeletingProxyId === selectedProxy.id ||
+                        isBatchTesting
                       }
                     >
                       <Wifi className="size-3.5" />
