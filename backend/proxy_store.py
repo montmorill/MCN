@@ -187,6 +187,7 @@ def create_proxy_record(
         "last_checked_at": None,
         "last_latency_ms": None,
         "last_error": None,
+        "last_check_result": None,
         "created_at": now,
         "updated_at": now,
     }
@@ -235,6 +236,9 @@ def update_proxy_record(proxy_id: str, **fields: Any) -> dict[str, Any] | None:
         target["last_latency_ms"] = fields["last_latency_ms"]
     if "last_error" in fields:
         target["last_error"] = _clean_text(fields["last_error"])
+    if "last_check_result" in fields:
+        value = fields["last_check_result"]
+        target["last_check_result"] = value if isinstance(value, dict) else None
 
     target["updated_at"] = now_iso()
     records[target_index] = target

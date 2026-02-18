@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
 import {
   CheckCircle2,
   ChevronRight,
@@ -6,6 +6,8 @@ import {
   Folder,
   FolderOpen,
   Loader2,
+  Plus,
+  Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -21,6 +23,8 @@ type FolderNode = {
 type RootFolder = FolderNode
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
+const USER_UPLOAD_ROOT_ID = "user-upload"
+const USER_UPLOAD_ROOT_NAME = "用户上传"
 const SPECIAL_BILIBILI_SUBFOLDER = "已采集未下载作者"
 const BILIBILI_AUTHOR_SUBFOLDERS = new Set(["指定作者", SPECIAL_BILIBILI_SUBFOLDER])
 
@@ -53,6 +57,11 @@ const fallbackRootFolders: RootFolder[] = [
       { id: "douyin-single", name: "单个作品", children: [] },
       { id: "douyin-author", name: "指定作者", children: [] },
     ],
+  },
+  {
+    id: USER_UPLOAD_ROOT_ID,
+    name: USER_UPLOAD_ROOT_NAME,
+    children: [],
   },
 ]
 
@@ -167,8 +176,11 @@ export function MaterialFolderBrowser({
   >([])
   const [selectedDeletePaths, setSelectedDeletePaths] = useState<string[]>([])
   const [isDownloadingSelected, setIsDownloadingSelected] = useState(false)
+  const [isCreatingUploadFolder, setIsCreatingUploadFolder] = useState(false)
+  const [isUploadingFile, setIsUploadingFile] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const uploadFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const loadMaterialTree = useCallback(async () => {
     setLoading(true)
@@ -206,6 +218,7 @@ export function MaterialFolderBrowser({
     () => activeRoot?.children.find((folder) => folder.id === activeSubId) ?? null,
     [activeRoot, activeSubId]
   )
+  const isUserUploadRoot = activeRoot?.id === USER_UPLOAD_ROOT_ID
 
   const expandedAuthorSub = useMemo(
     () =>
@@ -434,6 +447,72 @@ export function MaterialFolderBrowser({
     }
   }
 
+  const handleCreateUserUploadFolder = async () => {
+    if (!isUserUploadRoot) return
+    const folderName = window.prompt("请输入“用户上传”二级目录名称")
+    if (!folderName || !folderName.trim()) return
+
+    try {
+      setIsCreatingUploadFolder(true)
+      setActionError(null)
+      const response = await fetch(`${API_BASE}/api/materials/user-upload/folders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: folderName.trim(),
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "创建目录失败")
+      }
+      await loadMaterialTree()
+      window.dispatchEvent(new Event("materials:refresh"))
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "创建目录失败")
+    } finally {
+      setIsCreatingUploadFolder(false)
+    }
+  }
+
+  const handleUploadButtonClick = () => {
+    if (!activeSub?.relativePath || !isUserUploadRoot) return
+    uploadFileInputRef.current?.click()
+  }
+
+  const handleUserUploadFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !activeSub?.relativePath || !isUserUploadRoot) return
+
+    try {
+      setIsUploadingFile(true)
+      setActionError(null)
+      const formData = new FormData()
+      formData.append("folder_path", activeSub.relativePath)
+      formData.append("file", file)
+
+      const response = await fetch(`${API_BASE}/api/materials/user-upload/files`, {
+        method: "POST",
+        body: formData,
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "上传文件失败")
+      }
+      await loadMaterialTree()
+      window.dispatchEvent(new Event("materials:refresh"))
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "上传文件失败")
+    } finally {
+      setIsUploadingFile(false)
+      if (uploadFileInputRef.current) {
+        uploadFileInputRef.current.value = ""
+      }
+    }
+  }
+
   useEffect(() => {
     if (!onRegisterDeleteHandler) return
     if (!selectMode) {
@@ -505,8 +584,22 @@ export function MaterialFolderBrowser({
           )}
         >
           {activeRoot && (
-            <ul className="divide-y divide-white/[0.05] border-y border-white/[0.05]">
-              {activeRoot.children.map((child) => {
+            <>
+              {isUserUploadRoot && (
+                <div className="flex items-center justify-end border-y border-white/[0.05] bg-black/35 px-4 py-2">
+                  <button
+                    type="button"
+                    onClick={handleCreateUserUploadFolder}
+                    disabled={isCreatingUploadFolder}
+                    className="inline-flex h-7 items-center gap-1 rounded-full border border-white/[0.14] px-3 text-xs text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>{isCreatingUploadFolder ? "创建中..." : "新增二级目录"}</span>
+                  </button>
+                </div>
+              )}
+              <ul className="divide-y divide-white/[0.05] border-b border-white/[0.05]">
+                {activeRoot.children.map((child) => {
                 const isNestedAuthorFolder = isAuthorNestedSubfolder(
                   activeRoot.id,
                   child.name
@@ -517,6 +610,16 @@ export function MaterialFolderBrowser({
                   isNestedAuthorFolder &&
                   isNestedExpanded &&
                   activeAuthorFolderId !== null
+                const canDeleteSecondFolder = Boolean(
+                  isUserUploadRoot &&
+                    selectMode &&
+                    child.relativePath &&
+                    child.isDir !== false &&
+                    getMaterialDepth(child.relativePath) === 2
+                )
+                const isSecondFolderSelectedForDelete = isPathSelectedForDelete(
+                  child.relativePath
+                )
 
                 return (
                   <li key={child.id}>
@@ -546,6 +649,30 @@ export function MaterialFolderBrowser({
                       )}
                     >
                       <span className="flex min-w-0 items-center gap-2.5">
+                        {canDeleteSecondFolder && child.relativePath && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              toggleDeleteSelection(child.relativePath!)
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                toggleDeleteSelection(child.relativePath!)
+                              }
+                            }}
+                            className="inline-flex size-4 shrink-0 items-center justify-center"
+                          >
+                            {isSecondFolderSelectedForDelete ? (
+                              <CheckCircle2 className="size-4 shrink-0 text-red-400" />
+                            ) : (
+                              <Circle className="size-4 shrink-0 text-zinc-500" />
+                            )}
+                          </span>
+                        )}
                         {isActive || isNestedExpanded ? (
                           <FolderOpen className="size-4 shrink-0 text-zinc-300" />
                         ) : (
@@ -649,7 +776,8 @@ export function MaterialFolderBrowser({
                   </li>
                 )
               })}
-            </ul>
+              </ul>
+            </>
           )}
         </div>
       </aside>
@@ -670,6 +798,19 @@ export function MaterialFolderBrowser({
         >
           {showRightPanel && (
             <>
+              {isUserUploadRoot && activeSub && (
+                <div className="flex items-center justify-end border-y border-white/[0.05] bg-black/35 px-4 py-2">
+                  <button
+                    type="button"
+                    onClick={handleUploadButtonClick}
+                    disabled={isUploadingFile}
+                    className="inline-flex h-7 items-center gap-1 rounded-full border border-white/[0.14] px-3 text-xs text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <Upload className="size-3.5" />
+                    <span>{isUploadingFile ? "上传中..." : "上传文件"}</span>
+                  </button>
+                </div>
+              )}
               {isPendingAuthorContext && !selectMode && (
                 <div className="flex items-center justify-between border-y border-white/[0.05] bg-black/35 px-4 py-2">
                   <p className="text-xs text-zinc-400">
@@ -699,6 +840,47 @@ export function MaterialFolderBrowser({
               <ul className="divide-y divide-white/[0.05] border-b border-white/[0.05]">
                 {rightPanelFolders.length > 0 ? (
                   rightPanelFolders.map((child) => {
+                    if (isUserUploadRoot) {
+                      const canDeleteUploadFile = Boolean(
+                        selectMode &&
+                          child.relativePath &&
+                          child.isDir === false &&
+                          getMaterialDepth(child.relativePath) === 3
+                      )
+                      const isUploadFileSelectedForDelete = isPathSelectedForDelete(
+                        child.relativePath
+                      )
+
+                      if (canDeleteUploadFile && child.relativePath) {
+                        return (
+                          <li key={child.id}>
+                            <button
+                              type="button"
+                              onClick={() => toggleDeleteSelection(child.relativePath!)}
+                              className="flex h-11 w-full items-center gap-2.5 px-5 text-left text-sm text-zinc-300 transition-colors hover:bg-white/[0.025]"
+                            >
+                              {isUploadFileSelectedForDelete ? (
+                                <CheckCircle2 className="size-4 shrink-0 text-red-400" />
+                              ) : (
+                                <Circle className="size-4 shrink-0 text-zinc-500" />
+                              )}
+                              <Folder className="size-4 shrink-0 text-zinc-500" />
+                              <span className="min-w-0 truncate">{child.name}</span>
+                            </button>
+                          </li>
+                        )
+                      }
+
+                      return (
+                        <li key={child.id}>
+                          <div className="flex h-11 w-full items-center gap-2.5 px-5 text-sm text-zinc-300">
+                            <Folder className="size-4 shrink-0 text-zinc-500" />
+                            <span className="min-w-0 truncate">{child.name}</span>
+                          </div>
+                        </li>
+                      )
+                    }
+
                     if (isPendingAuthorContext) {
                       if (selectMode) {
                         return (
@@ -907,6 +1089,13 @@ export function MaterialFolderBrowser({
           )}
         </div>
       </aside>
+
+      <input
+        ref={uploadFileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleUserUploadFileChange}
+      />
     </div>
   )
 }

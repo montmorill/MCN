@@ -1,5 +1,9 @@
 fastapi
 uvicorn[standard]
+python-multipart
 requests
+aiohttp
+httpx
+pysocks
 msgpack
 xxtea-py

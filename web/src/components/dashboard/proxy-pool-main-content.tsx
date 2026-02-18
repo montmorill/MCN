@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState, type ComponentType } from "react"
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react"
 import {
-  Circle,
   CheckCircle2,
   ChevronDown,
   CircleAlert,
@@ -8,8 +7,19 @@ import {
   Plus,
   ShieldCheck,
   SlidersHorizontal,
+  Trash2,
+  Wifi,
   X,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Collapsible,
   CollapsibleContent,
@@ -18,8 +28,57 @@ import {
 import { cn } from "@/lib/utils"
 
 type ProxyPoolType = "publish" | "monitor"
-type ProxyStatus = "available" | "unstable" | "cooldown"
-type ConnectivityState = "idle" | "testing" | "success" | "failed"
+type ProxyProtocol = "http" | "https" | "socks5"
+type ProxyStatus = "active" | "dead" | "slow" | "disabled"
+type StatusFilter = "all" | ProxyStatus
+
+type ProxyServiceUnlock = {
+  name?: string
+  ok?: boolean
+  latency_seconds?: number | null
+}
+
+type ProxyCheckResult = {
+  success?: boolean
+  status?: string
+  message?: string
+  task_id?: string
+  real_ip?: string | null
+  latency_ms?: number | null
+  score?: number | null
+  proxy_type?: string | null
+  country?: string | null
+  region?: string | null
+  city?: string | null
+  services?: ProxyServiceUnlock[]
+}
+
+type ProxyRecord = {
+  id: string
+  ip: string
+  port: number
+  protocol: ProxyProtocol
+  username?: string | null
+  password_masked?: string | null
+  region?: string | null
+  type: ProxyPoolType
+  status: ProxyStatus
+  last_checked_at?: string | null
+  last_latency_ms?: number | null
+  last_error?: string | null
+  last_check_result?: ProxyCheckResult | null
+  created_at?: string
+  updated_at?: string
+}
+
+type SingleFormState = {
+  ip: string
+  port: string
+  username: string
+  password: string
+  region: string
+  protocol: ProxyProtocol
+}
 
 type ProxyDrawer = {
   id: ProxyStatus
@@ -29,351 +88,355 @@ type ProxyDrawer = {
   emptyDescription: string
 }
 
-type ProxyItem = {
-  id: string
-  endpoint: string
-  description: string
-  updatedAt: string
-  provider: string
-  region: string
-  protocol: string
-  successRate: string
-  status: ProxyStatus
-}
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
 
-type FilterOption = {
-  id: "all" | ProxyStatus
+const protocolOptions: { id: ProxyProtocol; label: string }[] = [
+  { id: "http", label: "HTTP" },
+  { id: "https", label: "HTTPS" },
+  { id: "socks5", label: "SOCKS5" },
+]
+
+const statusFilters: {
+  id: StatusFilter
   label: string
   icon: ComponentType<{ className?: string }>
-}
-
-const filters: FilterOption[] = [
-  { id: "all", label: "全部代理", icon: ShieldCheck },
-  { id: "available", label: "可用代理", icon: CheckCircle2 },
-  { id: "unstable", label: "异常代理", icon: CircleAlert },
-  { id: "cooldown", label: "待验证代理", icon: Clock3 },
+}[] = [
+  { id: "all", label: "全部", icon: SlidersHorizontal },
+  { id: "active", label: "可用", icon: CheckCircle2 },
+  { id: "slow", label: "较慢", icon: Clock3 },
+  { id: "dead", label: "不可用", icon: CircleAlert },
+  { id: "disabled", label: "禁用", icon: ShieldCheck },
 ]
 
 const proxyDrawers: ProxyDrawer[] = [
   {
-    id: "available",
-    label: "可用代理",
+    id: "active",
+    label: "正常代理",
     icon: CheckCircle2,
-    emptyTitle: "暂无可用代理",
-    emptyDescription: "代理连通性通过后会展示在这里。",
+    emptyTitle: "暂无正常代理",
+    emptyDescription: "连通和延迟都正常的代理会显示在这里。",
   },
   {
-    id: "unstable",
-    label: "异常代理",
-    icon: CircleAlert,
-    emptyTitle: "暂无异常代理",
-    emptyDescription: "请求超时或失败率异常的代理会被归类到这里。",
-  },
-  {
-    id: "cooldown",
-    label: "待验证代理",
+    id: "slow",
+    label: "异常代理（较慢）",
     icon: Clock3,
-    emptyTitle: "暂无待验证代理",
-    emptyDescription: "被临时限流后进入冷却期的代理会在这里等待恢复。",
+    emptyTitle: "暂无较慢代理",
+    emptyDescription: "检测可连通但延迟偏高的代理会显示在这里。",
+  },
+  {
+    id: "dead",
+    label: "异常代理（不可用）",
+    icon: CircleAlert,
+    emptyTitle: "暂无不可用代理",
+    emptyDescription: "检测失败或不可连通的代理会显示在这里。",
+  },
+  {
+    id: "disabled",
+    label: "停用代理",
+    icon: ShieldCheck,
+    emptyTitle: "暂无停用代理",
+    emptyDescription: "手动停用的代理会显示在这里。",
   },
 ]
 
-function getMockProxyItems(poolType: ProxyPoolType): ProxyItem[] {
-  if (poolType === "publish") {
-    return [
-      {
-        id: "publish-proxy-1",
-        endpoint: "45.67.12.80:8080",
-        description: "主发布出口代理，峰值稳定",
-        updatedAt: "2026-02-12",
-        provider: "ProxyLab",
-        region: "US-East",
-        protocol: "HTTP",
-        successRate: "98.4%",
-        status: "available",
-      },
-      {
-        id: "publish-proxy-2",
-        endpoint: "31.92.16.44:3128",
-        description: "备用发布代理，低时延",
-        updatedAt: "2026-02-11",
-        provider: "ProxyLab",
-        region: "EU-West",
-        protocol: "HTTPS",
-        successRate: "96.9%",
-        status: "available",
-      },
-      {
-        id: "publish-proxy-3",
-        endpoint: "103.220.15.9:7890",
-        description: "最近有突发丢包",
-        updatedAt: "2026-02-11",
-        provider: "NetBridge",
-        region: "AP-SG",
-        protocol: "SOCKS5",
-        successRate: "81.2%",
-        status: "unstable",
-      },
-      {
-        id: "publish-proxy-4",
-        endpoint: "172.77.6.52:9000",
-        description: "触发限频，已自动冷却",
-        updatedAt: "2026-02-10",
-        provider: "NetBridge",
-        region: "US-West",
-        protocol: "HTTP",
-        successRate: "74.1%",
-        status: "cooldown",
-      },
-    ]
+function getStatusLabel(status: string): string {
+  if (status === "active") return "可用"
+  if (status === "slow") return "较慢"
+  if (status === "dead") return "不可用"
+  if (status === "disabled") return "禁用"
+  return status || "未知"
+}
+
+function getStatusClass(status: string): string {
+  if (status === "active") {
+    return "border-emerald-400/40 bg-emerald-500/10 text-emerald-300"
   }
-
-  return [
-    {
-      id: "monitor-proxy-1",
-      endpoint: "111.14.8.90:8800",
-      description: "数据监控轮询主代理",
-      updatedAt: "2026-02-12",
-      provider: "EdgeProxy",
-      region: "JP-Tokyo",
-      protocol: "HTTPS",
-      successRate: "97.6%",
-      status: "available",
-    },
-    {
-      id: "monitor-proxy-2",
-      endpoint: "67.45.129.13:8081",
-      description: "高并发监控备用代理",
-      updatedAt: "2026-02-11",
-      provider: "EdgeProxy",
-      region: "US-Central",
-      protocol: "HTTP",
-      successRate: "95.8%",
-      status: "available",
-    },
-    {
-      id: "monitor-proxy-3",
-      endpoint: "88.31.72.200:8899",
-      description: "偶发连接复位",
-      updatedAt: "2026-02-10",
-      provider: "TunnelHub",
-      region: "EU-Central",
-      protocol: "SOCKS5",
-      successRate: "79.5%",
-      status: "unstable",
-    },
-    {
-      id: "monitor-proxy-4",
-      endpoint: "121.204.67.14:443",
-      description: "被目标平台限流，冷却中",
-      updatedAt: "2026-02-09",
-      provider: "TunnelHub",
-      region: "AP-HK",
-      protocol: "HTTPS",
-      successRate: "71.0%",
-      status: "cooldown",
-    },
-  ]
+  if (status === "slow") {
+    return "border-amber-400/40 bg-amber-500/10 text-amber-300"
+  }
+  if (status === "dead") {
+    return "border-red-400/40 bg-red-500/10 text-red-300"
+  }
+  if (status === "disabled") {
+    return "border-zinc-500/40 bg-zinc-500/10 text-zinc-300"
+  }
+  return "border-white/[0.18] bg-white/[0.08] text-zinc-300"
 }
 
-function formatDateLabel(value: Date = new Date()): string {
-  return value.toISOString().slice(0, 10)
+function formatDateTime(value?: string | null): string {
+  const normalized = String(value || "").trim()
+  if (!normalized) return "-"
+  return normalized.replace("T", " ").slice(0, 19)
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms)
-  })
+function formatResolvedLocation(result?: ProxyCheckResult | null): string {
+  if (!result) return "-"
+  const parts = [result.country, result.region, result.city]
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+  return parts.length > 0 ? parts.join(" / ") : "-"
 }
 
-function buildSeed(input: string): number {
-  return input.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0)
-}
-
-function evaluateConnectivity(proxy: ProxyItem): {
-  reachable: boolean
-  latencyMs: number
-  status: ProxyStatus
-  successRate: string
-} {
-  const seed = buildSeed(proxy.endpoint)
-  const reachable = seed % 4 !== 0
-  const latencyMs = 90 + (seed % 260)
-  const status: ProxyStatus = !reachable
-    ? "cooldown"
-    : latencyMs > 220
-      ? "unstable"
-      : "available"
-  const ratio = reachable
-    ? 90 + (seed % 10) + ((seed >> 1) % 10) / 10
-    : 45 + (seed % 25) + ((seed >> 2) % 10) / 10
+function createDefaultSingleForm(): SingleFormState {
   return {
-    reachable,
-    latencyMs,
-    status,
-    successRate: `${Math.min(ratio, 99.9).toFixed(1)}%`,
+    ip: "",
+    port: "10000",
+    username: "",
+    password: "",
+    region: "",
+    protocol: "http",
   }
 }
 
-function getConnectivityBadgeLabel(state: ConnectivityState): string {
-  if (state === "testing") return "测试中"
-  if (state === "success") return "联通正常"
-  if (state === "failed") return "联通失败"
-  return ""
+function ProtocolSelector({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: ProxyProtocol
+  onChange: (value: ProxyProtocol) => void
+  disabled?: boolean
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {protocolOptions.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => onChange(option.id)}
+          disabled={disabled}
+          className={cn(
+            "inline-flex h-8 items-center rounded-full border px-3 text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+            value === option.id
+              ? "border-white/30 bg-white/[0.10] text-zinc-100"
+              : "border-white/[0.12] text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-200"
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) {
-  const [activeFilter, setActiveFilter] = useState<FilterOption["id"]>("all")
+  const poolLabel = poolType === "publish" ? "发布代理池" : "监控代理池"
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [openMap, setOpenMap] = useState<Record<ProxyStatus, boolean>>({
-    available: true,
-    unstable: false,
-    cooldown: false,
+    active: true,
+    slow: false,
+    dead: false,
+    disabled: false,
   })
-  const [proxyItems, setProxyItems] = useState<ProxyItem[]>(() =>
-    getMockProxyItems(poolType)
-  )
+  const [proxyItems, setProxyItems] = useState<ProxyRecord[]>([])
   const [selectedProxyId, setSelectedProxyId] = useState<string | null>(null)
-  const [selectMode, setSelectMode] = useState(false)
-  const [selectedProxyIds, setSelectedProxyIds] = useState<string[]>([])
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [isTestingConnectivity, setIsTestingConnectivity] = useState(false)
-  const [connectivityStateById, setConnectivityStateById] = useState<
-    Record<string, ConnectivityState>
-  >({})
-  const [latencyById, setLatencyById] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  useEffect(() => {
-    setProxyItems(getMockProxyItems(poolType))
-    setSelectedProxyId(null)
-    setSelectMode(false)
-    setSelectedProxyIds([])
-    setIsTestingConnectivity(false)
-    setConnectivityStateById({})
-    setLatencyById({})
+  const [singleOpen, setSingleOpen] = useState(false)
+  const [batchOpen, setBatchOpen] = useState(false)
+  const [singleForm, setSingleForm] = useState<SingleFormState>(createDefaultSingleForm)
+  const [batchInput, setBatchInput] = useState("")
+  const [batchProtocol, setBatchProtocol] = useState<ProxyProtocol>("http")
+  const [batchRegion, setBatchRegion] = useState("")
+
+  const [isSubmittingSingle, setIsSubmittingSingle] = useState(false)
+  const [isSubmittingBatch, setIsSubmittingBatch] = useState(false)
+  const [isTestingProxyId, setIsTestingProxyId] = useState<string | null>(null)
+  const [isDeletingProxyId, setIsDeletingProxyId] = useState<string | null>(null)
+  const [batchResult, setBatchResult] = useState<string | null>(null)
+
+  const loadProxies = useCallback(async () => {
+    setLoading(true)
+    setErrorMessage(null)
+    try {
+      const response = await fetch(`${API_BASE}/api/proxies?type=${poolType}`)
+      const payload = await response.json()
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || "代理列表加载失败")
+      }
+      setProxyItems(Array.isArray(payload?.proxies) ? payload.proxies : [])
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "代理列表加载失败")
+      setProxyItems([])
+    } finally {
+      setLoading(false)
+    }
   }, [poolType])
 
-  const itemsByStatus = useMemo(() => {
-    return {
-      available: proxyItems.filter((item) => item.status === "available"),
-      unstable: proxyItems.filter((item) => item.status === "unstable"),
-      cooldown: proxyItems.filter((item) => item.status === "cooldown"),
-    }
-  }, [proxyItems])
+  useEffect(() => {
+    void loadProxies()
+  }, [loadProxies])
+
+  const visibleItems = useMemo(() => {
+    if (statusFilter === "all") return proxyItems
+    return proxyItems.filter((item) => item.status === statusFilter)
+  }, [proxyItems, statusFilter])
+
+  const proxiesByStatus = useMemo(
+    () => ({
+      active: proxyItems.filter((item) => item.status === "active"),
+      slow: proxyItems.filter((item) => item.status === "slow"),
+      dead: proxyItems.filter((item) => item.status === "dead"),
+      disabled: proxyItems.filter((item) => item.status === "disabled"),
+    }),
+    [proxyItems]
+  )
 
   const selectedProxy =
     proxyItems.find((item) => item.id === selectedProxyId) ?? null
+  const selectedCheckResult = selectedProxy?.last_check_result ?? null
+  const selectedUnlockServices = Array.isArray(selectedCheckResult?.services)
+    ? selectedCheckResult.services
+    : []
 
-  const poolLabel = poolType === "publish" ? "发布代理池" : "监控代理池"
-  const selectableProxyIds = useMemo(() => {
-    if (activeFilter === "all") {
-      return proxyItems.map((item) => item.id)
+  useEffect(() => {
+    if (selectedProxyId && !proxyItems.some((item) => item.id === selectedProxyId)) {
+      setSelectedProxyId(null)
     }
-    return proxyItems.filter((item) => item.status === activeFilter).map((item) => item.id)
-  }, [activeFilter, proxyItems])
-  const selectedCount = selectedProxyIds.length
-  const allVisibleSelected =
-    selectableProxyIds.length > 0 &&
-    selectableProxyIds.every((id) => selectedProxyIds.includes(id))
+  }, [proxyItems, selectedProxyId])
 
-  const handleToggleSelectMode = () => {
-    setSelectMode((prev) => {
-      const next = !prev
-      if (next) {
+  const handleCreateSingle = async () => {
+    const ip = singleForm.ip.trim()
+    const portValue = Number(singleForm.port)
+    if (!ip || !Number.isFinite(portValue) || portValue <= 0) {
+      setErrorMessage("请填写有效的 ip 和 port")
+      return
+    }
+
+    try {
+      setIsSubmittingSingle(true)
+      setErrorMessage(null)
+      const response = await fetch(`${API_BASE}/api/proxies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ip,
+          port: portValue,
+          username: singleForm.username.trim() || null,
+          password: singleForm.password.trim() || null,
+          protocol: singleForm.protocol,
+          region: singleForm.region.trim() || null,
+          type: poolType,
+        }),
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || "添加代理失败")
+      }
+      setSingleOpen(false)
+      setSingleForm(createDefaultSingleForm())
+      await loadProxies()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "添加代理失败")
+    } finally {
+      setIsSubmittingSingle(false)
+    }
+  }
+
+  const handleCreateBatch = async () => {
+    const items = batchInput
+      .split(/\r?\n/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+    if (items.length === 0) {
+      setErrorMessage("请至少输入一条代理记录")
+      return
+    }
+
+    try {
+      setIsSubmittingBatch(true)
+      setErrorMessage(null)
+      setBatchResult(null)
+      const response = await fetch(`${API_BASE}/api/proxies/batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items,
+          protocol: batchProtocol,
+          region: batchRegion.trim() || null,
+          type: poolType,
+        }),
+      })
+      const payload = await response.json()
+      if (!response.ok) {
+        throw new Error(payload?.message || "批量添加请求失败")
+      }
+
+      const successCount = Number(payload?.success_count ?? 0)
+      const failureCount = Number(payload?.failure_count ?? 0)
+      if (successCount <= 0) {
+        throw new Error(payload?.message || "批量添加失败")
+      }
+
+      let resultText = `批量添加完成：成功 ${successCount} 条，失败 ${failureCount} 条。`
+      const failures = Array.isArray(payload?.failures) ? payload.failures : []
+      if (failures.length > 0) {
+        const preview = failures
+          .slice(0, 2)
+          .map(
+            (item: { raw?: string; reason?: string }) =>
+              `${item.raw ?? "unknown"} => ${item.reason ?? "失败"}`
+          )
+          .join("；")
+        resultText += ` 示例失败：${preview}`
+      }
+      setBatchResult(resultText)
+      setBatchInput("")
+      await loadProxies()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "批量添加失败")
+    } finally {
+      setIsSubmittingBatch(false)
+    }
+  }
+
+  const handleDeleteProxy = async (proxyId: string) => {
+    const confirmed = window.confirm("确认删除该代理吗？")
+    if (!confirmed) return
+    try {
+      setIsDeletingProxyId(proxyId)
+      setErrorMessage(null)
+      const response = await fetch(`${API_BASE}/api/proxies/${proxyId}`, {
+        method: "DELETE",
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || "删除代理失败")
+      }
+      if (selectedProxyId === proxyId) {
         setSelectedProxyId(null)
-      } else {
-        setSelectedProxyIds([])
       }
-      return next
-    })
+      await loadProxies()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "删除代理失败")
+    } finally {
+      setIsDeletingProxyId(null)
+    }
   }
 
-  const toggleProxySelection = (proxyId: string) => {
-    setSelectedProxyIds((prev) =>
-      prev.includes(proxyId) ? prev.filter((id) => id !== proxyId) : [...prev, proxyId]
-    )
-  }
-
-  const handleToggleSelectAll = () => {
-    if (selectableProxyIds.length === 0) return
-    setSelectedProxyIds((prev) => {
-      const isAllSelected = selectableProxyIds.every((id) => prev.includes(id))
-      if (isAllSelected) {
-        return prev.filter((id) => !selectableProxyIds.includes(id))
+  const handleTestProxy = async (proxyId: string) => {
+    try {
+      setIsTestingProxyId(proxyId)
+      setErrorMessage(null)
+      const response = await fetch(`${API_BASE}/api/proxies/${proxyId}/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
+      const payload = await response.json()
+      if (!payload?.success) {
+        setErrorMessage(payload?.message || "代理测试失败")
       }
-      return Array.from(new Set([...prev, ...selectableProxyIds]))
-    })
-  }
-
-  const handleTestSelectedConnectivity = async () => {
-    if (selectedProxyIds.length === 0 || isTestingConnectivity) return
-    setIsTestingConnectivity(true)
-
-    setConnectivityStateById((prev) => {
-      const next = { ...prev }
-      selectedProxyIds.forEach((id) => {
-        next[id] = "testing"
-      })
-      return next
-    })
-
-    const results = await Promise.all(
-      selectedProxyIds.map(async (id, index) => {
-        const proxy = proxyItems.find((item) => item.id === id)
-        if (!proxy) return null
-        await sleep(220 + index * 90 + (buildSeed(proxy.endpoint) % 160))
-        const result = evaluateConnectivity(proxy)
-        return { id, ...result }
-      })
-    )
-
-    const resultMap = new Map(
-      results
-        .filter((result): result is NonNullable<typeof result> => Boolean(result))
-        .map((result) => [result.id, result])
-    )
-
-    setProxyItems((prev) =>
-      prev.map((item) => {
-        const result = resultMap.get(item.id)
-        if (!result) return item
-        return {
-          ...item,
-          status: result.status,
-          successRate: result.successRate,
-          updatedAt: formatDateLabel(),
-        }
-      })
-    )
-
-    setConnectivityStateById((prev) => {
-      const next = { ...prev }
-      resultMap.forEach((result, id) => {
-        next[id] = result.reachable ? "success" : "failed"
-      })
-      return next
-    })
-
-    setLatencyById((prev) => {
-      const next = { ...prev }
-      resultMap.forEach((result, id) => {
-        next[id] = result.latencyMs
-      })
-      return next
-    })
-
-    setIsTestingConnectivity(false)
-  }
-
-  const handleDeleteSelected = async () => {
-    if (selectedProxyIds.length === 0 || isDeleting) return
-    setIsDeleting(true)
-
-    // 模拟API调用延迟
-    await sleep(600)
-
-    setProxyItems((prev) => prev.filter((item) => !selectedProxyIds.includes(item.id)))
-    setSelectedProxyIds([])
-    setIsDeleting(false)
+      if (!response.ok && !payload?.success) {
+        throw new Error(payload?.message || "代理测试失败")
+      }
+      await loadProxies()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "代理测试失败")
+    } finally {
+      setIsTestingProxyId(null)
+    }
   }
 
   return (
@@ -384,33 +447,13 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
             <SlidersHorizontal className="size-3.5" />
             <span>筛选</span>
           </button>
-          <button
-            onClick={handleToggleSelectMode}
-            className={cn(
-              "mr-1 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] font-medium transition-colors duration-100",
-              selectMode
-                ? "border-white/[0.26] bg-white/[0.10] text-zinc-100"
-                : "border-white/[0.12] text-zinc-300 hover:bg-white/[0.05]"
-            )}
-          >
-            <span>{selectMode ? "退出选择" : "选择"}</span>
-          </button>
-          {selectMode && (
-            <button
-              onClick={handleToggleSelectAll}
-              className="mr-1 inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] px-3 py-1 text-[13px] font-medium text-zinc-300 transition-colors duration-100 hover:bg-white/[0.05]"
-            >
-              <span>{allVisibleSelected ? "取消全选" : "全选"}</span>
-            </button>
-          )}
-
-          {filters.map((filter) => {
-            const isActive = activeFilter === filter.id
+          {statusFilters.map((filter) => {
+            const isActive = statusFilter === filter.id
             const Icon = filter.icon
             return (
               <button
                 key={filter.id}
-                onClick={() => setActiveFilter(filter.id)}
+                onClick={() => setStatusFilter(filter.id)}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium transition-colors duration-100",
                   isActive
@@ -424,271 +467,440 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
             )
           })}
         </div>
-
         <div className="flex items-center gap-2">
-          {selectMode && (
-            <>
-              <button
-                onClick={() => void handleTestSelectedConnectivity()}
-                disabled={selectedCount === 0 || isTestingConnectivity || isDeleting}
-                className="inline-flex h-7 items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3.5 text-[12px] font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isTestingConnectivity
-                  ? "测试中..."
-                  : `测试联通${selectedCount > 0 ? ` (${selectedCount})` : ""}`}
-              </button>
-
-              <button
-                onClick={() => void handleDeleteSelected()}
-                disabled={selectedCount === 0 || isDeleting || isTestingConnectivity}
-                className="inline-flex h-7 items-center justify-center rounded-full border border-red-400/40 bg-red-500/10 px-3.5 text-[12px] font-medium text-red-300 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isDeleting
-                  ? "删除中..."
-                  : `删除代理${selectedCount > 0 ? ` (${selectedCount})` : ""}`}
-              </button>
-            </>
-          )}
-
-          <button className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-[13px] font-medium text-black transition-colors duration-100 hover:bg-zinc-200">
+          <button
+            onClick={() => setBatchOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] px-3.5 py-1 text-[13px] font-medium text-zinc-200 transition-colors duration-100 hover:bg-white/[0.05]"
+          >
             <Plus className="size-3.5" />
-            <span>新增代理</span>
+            <span>批量添加代理</span>
+          </button>
+          <button
+            onClick={() => setSingleOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-[13px] font-medium text-black transition-colors duration-100 hover:bg-zinc-200"
+          >
+            <Plus className="size-3.5" />
+            <span>添加单个代理</span>
           </button>
         </div>
       </div>
 
+      {errorMessage && (
+        <div className="border-b border-red-400/20 bg-red-500/10 px-5 py-2 text-xs text-red-300">
+          {errorMessage}
+        </div>
+      )}
+
       <main className="min-h-0 flex-1 overflow-hidden">
-        <div className="h-full w-full overflow-hidden">
-          <div className="flex h-full">
-            <div className="min-w-0 flex-1 overflow-y-auto">
-              {proxyDrawers.map((drawer) => {
-                const isOpen = Boolean(openMap[drawer.id])
-                const proxies = itemsByStatus[drawer.id]
-                const shouldRenderDrawer =
-                  activeFilter === "all" || activeFilter === drawer.id
-                if (!shouldRenderDrawer) return null
+        <div className="flex h-full">
+          <section className="min-w-0 flex-1 overflow-y-auto">
+            <div className="px-5 py-3 text-xs text-zinc-500">{poolLabel} · 共 {visibleItems.length} 条</div>
+            {loading ? (
+              <div className="px-5 text-sm text-zinc-400">加载中...</div>
+            ) : visibleItems.length === 0 ? (
+              <div className="mx-5 rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-sm text-zinc-400">
+                当前筛选下暂无代理记录。
+              </div>
+            ) : (
+              <>
+                {proxyDrawers.map((drawer) => {
+                  const DrawerIcon = drawer.icon
+                  const shouldRenderDrawer =
+                    statusFilter === "all" || statusFilter === drawer.id
+                  if (!shouldRenderDrawer) return null
 
-                const DrawerIcon = drawer.icon
-
-                return (
-                  <Collapsible
-                    key={drawer.id}
-                    open={isOpen}
-                    onOpenChange={(open) =>
-                      setOpenMap((prev) => ({ ...prev, [drawer.id]: open }))
-                    }
-                    className="border-b border-white/[0.05] first:border-t first:border-white/[0.05]"
-                  >
-                    <CollapsibleTrigger asChild>
-                      <button className="flex h-11 w-full items-center bg-black/45 px-5 text-left transition-colors hover:bg-black/35">
-                        <span className="flex items-center gap-2.5 text-sm text-zinc-200">
-                          <ChevronDown
-                            className={cn(
-                              "size-4 text-zinc-500 transition-transform duration-200 ease-out",
-                              isOpen && "rotate-180"
-                            )}
-                          />
-                          <DrawerIcon className="size-4 text-zinc-300" />
-                          <span>{drawer.label}</span>
-                        </span>
-                      </button>
-                    </CollapsibleTrigger>
-
-                    <CollapsibleContent
-                      forceMount
-                      className={cn(
-                        "grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                        isOpen
-                          ? "grid-rows-[1fr] opacity-100"
-                          : "grid-rows-[0fr] opacity-0"
-                      )}
+                  const proxies = proxiesByStatus[drawer.id]
+                  const isOpen = Boolean(openMap[drawer.id])
+                  return (
+                    <Collapsible
+                      key={drawer.id}
+                      open={isOpen}
+                      onOpenChange={(open) =>
+                        setOpenMap((prev) => ({ ...prev, [drawer.id]: open }))
+                      }
+                      className="border-b border-white/[0.05] first:border-t first:border-white/[0.05]"
                     >
-                      <div className="overflow-hidden border-t border-white/[0.05] bg-white/[0.01]">
-                        {proxies.length > 0 ? (
-                          <ul className="divide-y divide-white/[0.05]">
-                            {proxies.map((proxy) => {
-                              const isSelected = selectMode
-                                ? selectedProxyIds.includes(proxy.id)
-                                : selectedProxyId === proxy.id
-                              const connectivityState =
-                                connectivityStateById[proxy.id] ?? "idle"
-                              const connectivityLabel =
-                                getConnectivityBadgeLabel(connectivityState)
-                              return (
-                                <li key={proxy.id}>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (selectMode) {
-                                        toggleProxySelection(proxy.id)
-                                        return
+                      <CollapsibleTrigger asChild>
+                        <button className="flex h-11 w-full items-center bg-black/45 px-5 text-left transition-colors hover:bg-black/35">
+                          <span className="flex items-center gap-2.5 text-sm text-zinc-200">
+                            <ChevronDown
+                              className={cn(
+                                "size-4 text-zinc-500 transition-transform duration-200 ease-out",
+                                isOpen && "rotate-180"
+                              )}
+                            />
+                            <DrawerIcon className="size-4 text-zinc-300" />
+                            <span>{drawer.label}</span>
+                          </span>
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent
+                        forceMount
+                        className={cn(
+                          "grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                          isOpen
+                            ? "grid-rows-[1fr] opacity-100"
+                            : "grid-rows-[0fr] opacity-0"
+                        )}
+                      >
+                        <div className="overflow-hidden border-t border-white/[0.05] bg-white/[0.01]">
+                          {proxies.length > 0 ? (
+                            <ul className="divide-y divide-white/[0.05]">
+                              {proxies.map((proxy) => {
+                                const isSelected = selectedProxyId === proxy.id
+                                return (
+                                  <li key={proxy.id}>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setSelectedProxyId((prev) =>
+                                          prev === proxy.id ? null : proxy.id
+                                        )
                                       }
-                                      setSelectedProxyId((prev) =>
-                                        prev === proxy.id ? null : proxy.id
-                                      )
-                                    }}
-                                    className={cn(
-                                      "flex h-11 w-full items-center justify-between px-5 text-left transition-colors hover:bg-white/[0.025]",
-                                      isSelected && "bg-white/[0.05]"
-                                    )}
-                                  >
-                                    <div className="min-w-0 pr-3">
-                                      <div className="flex items-center gap-2.5 truncate text-sm text-zinc-200">
-                                        {selectMode ? (
-                                          isSelected ? (
-                                            <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />
-                                          ) : (
-                                            <Circle className="size-4 shrink-0 text-zinc-500" />
-                                          )
-                                        ) : null}
-                                        <ShieldCheck className="size-4 shrink-0 text-zinc-500" />
-                                        <span className="truncate">{proxy.endpoint}</span>
-                                      </div>
-                                    </div>
-                                    <span className="flex shrink-0 items-center gap-2">
-                                      {connectivityLabel && (
-                                        <span
-                                          className={cn(
-                                            "inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-medium",
-                                            connectivityState === "testing" &&
-                                              "border-sky-400/40 bg-sky-500/10 text-sky-300",
-                                            connectivityState === "success" &&
-                                              "border-emerald-400/40 bg-emerald-500/10 text-emerald-300",
-                                            connectivityState === "failed" &&
-                                              "border-red-400/40 bg-red-500/10 text-red-300"
-                                          )}
-                                        >
-                                          {connectivityLabel}
-                                        </span>
+                                      className={cn(
+                                        "flex h-11 w-full items-center justify-between px-5 text-left transition-colors hover:bg-white/[0.025]",
+                                        isSelected && "bg-white/[0.05]"
                                       )}
-                                      <span className="text-xs tabular-nums text-zinc-500">
-                                        {proxy.updatedAt}
+                                    >
+                                      <div className="min-w-0 pr-3">
+                                        <div className="flex items-center gap-2.5 truncate text-sm text-zinc-200">
+                                          <Wifi className="size-4 shrink-0 text-zinc-500" />
+                                          <span className="truncate">
+                                            {proxy.ip}:{proxy.port}
+                                          </span>
+                                          <span className="mx-1 text-zinc-600">·</span>
+                                          <span className="truncate text-zinc-500">
+                                            {String(proxy.protocol || "").toUpperCase()}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+                                        {formatDateTime(proxy.created_at)}
                                       </span>
-                                    </span>
-                                  </button>
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        ) : (
-                          <div className="px-5 py-4">
-                            <div className="min-w-0">
-                              <p className="text-sm text-zinc-300">
-                                {drawer.emptyTitle}
-                              </p>
+                                    </button>
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          ) : (
+                            <div className="px-5 py-4">
+                              <p className="text-sm text-zinc-300">{drawer.emptyTitle}</p>
                               <p className="mt-1 text-xs leading-relaxed text-zinc-500">
                                 {drawer.emptyDescription}
                               </p>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                )
-              })}
-            </div>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )
+                })}
+              </>
+            )}
+          </section>
 
-            <aside
+          <aside
+            className={cn(
+              "min-h-0 shrink-0 overflow-hidden border-l border-white/[0.06] bg-black/30 transition-[width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              selectedProxy ? "w-[360px] xl:w-[420px] opacity-100" : "w-0 opacity-0"
+            )}
+          >
+            <div
               className={cn(
-                "min-h-0 shrink-0 overflow-hidden border-l border-white/[0.06] bg-black/30 transition-[width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                selectedProxy ? "w-[360px] xl:w-[420px] opacity-100" : "w-0 opacity-0"
+                "min-h-0 h-full px-5 py-4 transition-opacity duration-200",
+                selectedProxy ? "opacity-100 delay-75" : "pointer-events-none opacity-0"
               )}
             >
-              <div
-                className={cn(
-                  "min-h-0 h-full px-5 py-4 transition-opacity duration-200",
-                  selectedProxy ? "opacity-100 delay-75" : "pointer-events-none opacity-0"
-                )}
-              >
-                {selectedProxy && (
-                  <div className="flex min-h-0 h-full flex-col">
-                    <div className="flex items-start justify-between border-b border-white/[0.06] pb-3">
-                      <div className="pr-3">
-                        <p className="text-sm text-zinc-100">{selectedProxy.endpoint}</p>
-                        <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-                          {selectedProxy.description}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedProxyId(null)}
-                        className="inline-flex size-7 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
-                        aria-label="关闭代理详情面板"
-                      >
-                        <X className="size-4" />
-                      </button>
+              {selectedProxy && (
+                <div className="flex min-h-0 h-full flex-col">
+                  <div className="flex items-start justify-between border-b border-white/[0.06] pb-3">
+                    <div className="pr-3">
+                      <p className="text-sm text-zinc-100">
+                        {selectedProxy.ip}:{selectedProxy.port}
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+                        {poolLabel} / {getStatusLabel(selectedProxy.status)}
+                      </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProxyId(null)}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-zinc-300"
+                      aria-label="关闭详情面板"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
 
-                    <div className="flex min-h-0 flex-1 flex-col py-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-zinc-500">所属池</span>
-                          <span className="text-zinc-200">{poolLabel}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-zinc-500">服务商</span>
-                          <span className="text-zinc-200">{selectedProxy.provider}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-zinc-500">区域</span>
-                          <span className="text-zinc-200">{selectedProxy.region}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-zinc-500">协议</span>
-                          <span className="text-zinc-200">{selectedProxy.protocol}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-zinc-500">成功率</span>
-                          <span className="text-zinc-200">{selectedProxy.successRate}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-zinc-500">联通状态</span>
-                          <span
-                            className={cn(
-                              "text-zinc-200",
-                              (connectivityStateById[selectedProxy.id] ?? "idle") ===
-                                "success" && "text-emerald-300",
-                              (connectivityStateById[selectedProxy.id] ?? "idle") ===
-                                "failed" && "text-red-300",
-                              (connectivityStateById[selectedProxy.id] ?? "idle") ===
-                                "testing" && "text-sky-300"
-                            )}
-                          >
-                            {getConnectivityBadgeLabel(
-                              connectivityStateById[selectedProxy.id] ?? "idle"
-                            ) || "未测试"}
-                          </span>
-                        </div>
-                        {latencyById[selectedProxy.id] != null && (
-                          <div className="flex items-center justify-between gap-3 text-sm">
-                            <span className="text-zinc-500">最近延迟</span>
-                            <span className="text-zinc-200">
-                              {latencyById[selectedProxy.id]} ms
-                            </span>
-                          </div>
+                  <div className="mt-4 space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">协议</span>
+                      <span className="text-zinc-200">
+                        {String(selectedProxy.protocol || "").toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">状态</span>
+                      <span
+                        className={cn(
+                          "inline-flex h-6 items-center rounded-full border px-2.5 text-[11px]",
+                          getStatusClass(selectedProxy.status)
                         )}
-                      </div>
-
-                      <div className="mt-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/[0.08] bg-black/35 p-3">
-                        <p className="text-[11px] uppercase tracking-[0.12em] text-zinc-500">
-                          代理备注
-                        </p>
-                        <div className="mt-2 min-h-0 flex-1 overflow-auto pr-1 text-[12px] leading-6 text-zinc-400 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                          <p>
-                            当前为样式迁移占位内容。下一步可接入代理实时探活、延迟曲线、
-                            失败原因采样与自动熔断策略。
-                          </p>
-                        </div>
-                      </div>
+                      >
+                        {getStatusLabel(selectedProxy.status)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">账号</span>
+                      <span className="text-zinc-200">{selectedProxy.username || "-"}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">区域</span>
+                      <span className="text-zinc-200">{selectedProxy.region || "-"}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">最近检测</span>
+                      <span className="text-zinc-200">
+                        {formatDateTime(selectedProxy.last_checked_at)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">延迟</span>
+                      <span className="text-zinc-200">
+                        {selectedCheckResult?.latency_ms != null
+                          ? `${selectedCheckResult.latency_ms}ms`
+                          : selectedProxy.last_latency_ms != null
+                            ? `${selectedProxy.last_latency_ms}ms`
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">评分</span>
+                      <span className="text-zinc-200">
+                        {selectedCheckResult?.score != null ? selectedCheckResult.score : "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">落地 IP</span>
+                      <span className="text-zinc-200">
+                        {selectedCheckResult?.real_ip || "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">节点类型</span>
+                      <span className="text-zinc-200">
+                        {selectedCheckResult?.proxy_type || "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-zinc-500">落地位置</span>
+                      <span className="text-zinc-200">
+                        {formatResolvedLocation(selectedCheckResult)}
+                      </span>
                     </div>
                   </div>
-                )}
-              </div>
-            </aside>
-          </div>
+
+                  <div className="mt-5 min-h-0 flex-1 overflow-auto rounded-lg border border-white/[0.08] bg-black/35 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-zinc-500">
+                      检测结果
+                    </p>
+                    <div className="mt-2 text-[12px] leading-5 text-zinc-400">
+                      <p>
+                        {selectedCheckResult?.message ||
+                          selectedProxy.last_error ||
+                          "最近检测无错误"}
+                      </p>
+                      {selectedUnlockServices.length > 0 ? (
+                        <div className="mt-2 space-y-1">
+                          {selectedUnlockServices.map((service, index) => (
+                            <p key={`${service.name || "service"}-${index}`}>
+                              {service.ok ? "✅" : "❌"} {service.name || "unknown"}
+                              {service.latency_seconds != null
+                                ? ` (${service.latency_seconds}s)`
+                                : ""}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full border-white/[0.18] bg-white/[0.03] text-zinc-200 hover:bg-white/[0.08]"
+                      onClick={() => void handleTestProxy(selectedProxy.id)}
+                      disabled={
+                        isTestingProxyId === selectedProxy.id ||
+                        isDeletingProxyId === selectedProxy.id
+                      }
+                    >
+                      <Wifi className="size-3.5" />
+                      {isTestingProxyId === selectedProxy.id ? "测试中..." : "测试代理"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full border-red-400/40 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                      onClick={() => void handleDeleteProxy(selectedProxy.id)}
+                      disabled={
+                        isDeletingProxyId === selectedProxy.id ||
+                        isTestingProxyId === selectedProxy.id
+                      }
+                    >
+                      <Trash2 className="size-3.5" />
+                      {isDeletingProxyId === selectedProxy.id ? "删除中..." : "删除代理"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
       </main>
+
+      <Dialog open={singleOpen} onOpenChange={setSingleOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>添加单个代理</DialogTitle>
+            <DialogDescription>填写一条代理并选择协议类型。</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <div>
+              <p className="mb-2 text-xs tracking-[0.12em] uppercase text-zinc-500">代理协议</p>
+              <ProtocolSelector
+                value={singleForm.protocol}
+                onChange={(value) =>
+                  setSingleForm((prev) => ({
+                    ...prev,
+                    protocol: value,
+                  }))
+                }
+                disabled={isSubmittingSingle}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={singleForm.ip}
+                onChange={(event) =>
+                  setSingleForm((prev) => ({ ...prev, ip: event.target.value }))
+                }
+                placeholder="IP 或域名"
+                className="h-9 rounded-full border border-white/[0.12] bg-white/[0.03] px-4 text-[13px] text-zinc-200 placeholder:text-zinc-500 outline-none transition-colors focus:border-white/[0.22] focus:bg-white/[0.06]"
+              />
+              <input
+                value={singleForm.port}
+                onChange={(event) =>
+                  setSingleForm((prev) => ({ ...prev, port: event.target.value }))
+                }
+                placeholder="端口"
+                className="h-9 rounded-full border border-white/[0.12] bg-white/[0.03] px-4 text-[13px] text-zinc-200 placeholder:text-zinc-500 outline-none transition-colors focus:border-white/[0.22] focus:bg-white/[0.06]"
+              />
+              <input
+                value={singleForm.username}
+                onChange={(event) =>
+                  setSingleForm((prev) => ({ ...prev, username: event.target.value }))
+                }
+                placeholder="用户名（可选）"
+                className="h-9 rounded-full border border-white/[0.12] bg-white/[0.03] px-4 text-[13px] text-zinc-200 placeholder:text-zinc-500 outline-none transition-colors focus:border-white/[0.22] focus:bg-white/[0.06]"
+              />
+              <input
+                value={singleForm.password}
+                onChange={(event) =>
+                  setSingleForm((prev) => ({ ...prev, password: event.target.value }))
+                }
+                placeholder="密码（可选）"
+                className="h-9 rounded-full border border-white/[0.12] bg-white/[0.03] px-4 text-[13px] text-zinc-200 placeholder:text-zinc-500 outline-none transition-colors focus:border-white/[0.22] focus:bg-white/[0.06]"
+              />
+            </div>
+            <input
+              value={singleForm.region}
+              onChange={(event) =>
+                setSingleForm((prev) => ({ ...prev, region: event.target.value }))
+              }
+              placeholder="区域（可选，例如 us/jp/uk）"
+              className="h-9 w-full rounded-full border border-white/[0.12] bg-white/[0.03] px-4 text-[13px] text-zinc-200 placeholder:text-zinc-500 outline-none transition-colors focus:border-white/[0.22] focus:bg-white/[0.06]"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              className="h-8 rounded-full border border-white/[0.12] px-4 hover:bg-white/[0.05]"
+              onClick={() => setSingleOpen(false)}
+              disabled={isSubmittingSingle}
+            >
+              取消
+            </Button>
+            <Button
+              className="h-8 rounded-full bg-white px-4 text-black hover:bg-zinc-200"
+              onClick={() => void handleCreateSingle()}
+              disabled={isSubmittingSingle}
+            >
+              {isSubmittingSingle ? "提交中..." : "确认添加"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={batchOpen} onOpenChange={setBatchOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>批量添加代理</DialogTitle>
+            <DialogDescription>
+              每行一条，支持 <code>host:port:user:pass</code> 或标准 URL 格式。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <div>
+              <p className="mb-2 text-xs tracking-[0.12em] uppercase text-zinc-500">
+                批量协议（统一套用）
+              </p>
+              <ProtocolSelector
+                value={batchProtocol}
+                onChange={setBatchProtocol}
+                disabled={isSubmittingBatch}
+              />
+            </div>
+            <textarea
+              value={batchInput}
+              onChange={(event) => setBatchInput(event.target.value)}
+              placeholder={
+                "asdata.lumidaili.com:10000:userID-xxx:pass\nhttp://user:pass@host:port"
+              }
+              className="min-h-[140px] w-full rounded-lg border border-white/[0.12] bg-white/[0.03] px-3 py-2 text-[13px] text-zinc-200 placeholder:text-zinc-500 outline-none transition-colors focus:border-white/[0.22] focus:bg-white/[0.06]"
+            />
+            <input
+              value={batchRegion}
+              onChange={(event) => setBatchRegion(event.target.value)}
+              placeholder="区域（可选，例如 us/jp/uk）"
+              className="h-9 w-full rounded-full border border-white/[0.12] bg-white/[0.03] px-4 text-[13px] text-zinc-200 placeholder:text-zinc-500 outline-none transition-colors focus:border-white/[0.22] focus:bg-white/[0.06]"
+            />
+            {batchResult && (
+              <div className="rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                {batchResult}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              className="h-8 rounded-full border border-white/[0.12] px-4 hover:bg-white/[0.05]"
+              onClick={() => setBatchOpen(false)}
+              disabled={isSubmittingBatch}
+            >
+              关闭
+            </Button>
+            <Button
+              className="h-8 rounded-full bg-white px-4 text-black hover:bg-zinc-200"
+              onClick={() => void handleCreateBatch()}
+              disabled={isSubmittingBatch}
+            >
+              {isSubmittingBatch ? "提交中..." : "开始批量添加"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

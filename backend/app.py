@@ -12,14 +12,32 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
-from fastapi import FastAPI
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from account_store import (
+    canonical_field_name,
+    create_account_record,
+    delete_account_record,
+    get_account_record,
+    list_account_records,
+    update_account_record,
+)
 from bilibili_crawler import BilibiliCrawler
+from checkerproxy_health import run_checkerproxy_health_check
 from longmao_parser import normalize_platform_type, parse_content_data
 from main import (
     read_author_meta,
+)
+from proxy_store import (
+    create_proxy_record,
+    delete_proxy_record,
+    get_proxy_record,
+    list_proxy_records,
+    parse_proxy_input,
+    remove_account_binding,
+    update_proxy_record,
 )
 from task_store import (
     append_task_log,
@@ -29,6 +47,11 @@ from task_store import (
     read_task_record,
     update_task_record,
 )
+from twitter_account_verifier import (
+    TwitterAccountVerifierSession,
+    map_verification_to_account_status,
+    parse_auth_token,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 MATERIALS_ROOT = BASE_DIR / "materials"
@@ -36,10 +59,14 @@ TASK_WORKER_SCRIPT = BASE_DIR / "task_worker.py"
 TASK_WORKER_LOG_DIR = BASE_DIR / "runtime" / "worker-logs"
 TASK_WORKER_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
+USER_UPLOAD_PLATFORM_KEY = "user-upload"
+USER_UPLOAD_PLATFORM_NAME = "用户上传"
+
 PLATFORM_DIRS = {
     "bilibili": "哔哩哔哩",
     "xiaohongshu": "小红书",
     "douyin": "抖音",
+    USER_UPLOAD_PLATFORM_KEY: USER_UPLOAD_PLATFORM_NAME,
 }
 DEFAULT_SECOND_LEVEL_DIRS = ("单个作品", "指定作者")
 BILIBILI_UNDOWNLOADED_AUTHOR_DIR = "已采集未下载作者"
@@ -78,6 +105,57 @@ class MaterialsDeleteRequest(BaseModel):
     paths: list[str] = Field(..., min_length=1)
 
 
+class UserUploadFolderCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=80)
+
+
+class ProxyCreateRequest(BaseModel):
+    ip: str | None = None
+    port: int | None = None
+    username: str | None = None
+    password: str | None = None
+    protocol: str = "http"  # http | https | socks5
+    region: str | None = None
+    type: str = "publish"  # publish | monitor
+    raw: str | None = None
+
+
+class ProxyBatchCreateRequest(BaseModel):
+    items: list[str] = Field(..., min_length=1)
+    protocol: str = "http"  # http | https | socks5
+    region: str | None = None
+    type: str = "publish"  # publish | monitor
+
+
+class ProxyTestRequest(BaseModel):
+    timeout: int = 15
+    check_type: str = "soft"
+    services: list[str] | None = None
+
+
+class AccountCreateRequest(BaseModel):
+    platform: str = "twitter"
+    account: str
+    password: str | None = None
+    twofa: str | None = None
+    token: str | None = None
+    email: str | None = None
+    email_password: str | None = None
+    status: str = "active"
+
+
+class AccountBatchCreateRequest(BaseModel):
+    platform: str = "twitter"
+    raw_text: str = Field(..., min_length=1)
+    delimiter: str = "----"
+    field_order: list[str] = Field(..., min_length=1)
+    status: str = "active"
+
+
+class AccountVerifyRequest(BaseModel):
+    account_ids: list[str] = Field(..., min_length=1)
+
+
 app = FastAPI(title="MCN Backend API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
@@ -98,11 +176,15 @@ app.add_middleware(
 
 def ensure_material_tree() -> None:
     for platform_key, platform_name in PLATFORM_DIRS.items():
+        root_dir = MATERIALS_ROOT / platform_name
+        root_dir.mkdir(parents=True, exist_ok=True)
         for second in get_second_level_dirs(platform_key):
-            (MATERIALS_ROOT / platform_name / second).mkdir(parents=True, exist_ok=True)
+            (root_dir / second).mkdir(parents=True, exist_ok=True)
 
 
 def get_second_level_dirs(platform_key: str) -> tuple[str, ...]:
+    if platform_key == USER_UPLOAD_PLATFORM_KEY:
+        return ()
     if platform_key == "bilibili":
         return (*DEFAULT_SECOND_LEVEL_DIRS, *BILIBILI_EXTRA_SECOND_LEVEL_DIRS)
     return DEFAULT_SECOND_LEVEL_DIRS
@@ -205,6 +287,10 @@ def validate_material_delete_target(target: Path) -> tuple[bool, str]:
     if target.name.lower() in INTERNAL_MATERIAL_FILE_NAMES:
         return False, "系统内部文件不允许删除"
 
+    # materials/<用户上传>/<二级目录> 为用户创建目录，允许删除。
+    if depth == 2 and target.is_dir() and platform_name == USER_UPLOAD_PLATFORM_NAME:
+        return True, ""
+
     # materials/<一级目录>/<二级目录> 为系统默认目录，禁止删除。
     if depth <= 2:
         return False, "禁止删除系统默认目录（一级目录和二级目录）"
@@ -215,6 +301,10 @@ def validate_material_delete_target(target: Path) -> tuple[bool, str]:
 
     # 允许删除普通三级目录下文件。
     if depth == 4 and target.is_file():
+        return True, ""
+
+    # 允许删除“用户上传”二级目录下文件（第3层文件）。
+    if depth == 3 and target.is_file() and platform_name == USER_UPLOAD_PLATFORM_NAME:
         return True, ""
 
     # 允许删除 B站作者目录下的作品目录（第4层目录）。
@@ -261,6 +351,15 @@ def sanitize_folder_name(name: str) -> str:
     return cleaned[:80]
 
 
+def sanitize_file_name(name: str) -> str:
+    basename = Path(str(name or "").strip()).name
+    cleaned = re.sub(r'[\\/:*?"<>|]', "_", basename).strip().strip(".")
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    if not cleaned:
+        cleaned = f"upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    return cleaned[:120]
+
+
 def make_unique_dir(base_dir: Path, folder_name: str) -> Path:
     candidate = base_dir / folder_name
     if not candidate.exists():
@@ -268,6 +367,21 @@ def make_unique_dir(base_dir: Path, folder_name: str) -> Path:
     index = 2
     while True:
         next_candidate = base_dir / f"{folder_name}_{index}"
+        if not next_candidate.exists():
+            return next_candidate
+        index += 1
+
+
+def make_unique_file_path(base_dir: Path, file_name: str) -> Path:
+    candidate = base_dir / file_name
+    if not candidate.exists():
+        return candidate
+
+    stem = Path(file_name).stem or "upload"
+    suffix = Path(file_name).suffix
+    index = 2
+    while True:
+        next_candidate = base_dir / f"{stem}_{index}{suffix}"
         if not next_candidate.exists():
             return next_candidate
         index += 1
@@ -651,6 +765,586 @@ def collect_single_work(url: str, task_title: str | None, task_desc: str | None)
     }
 
 
+def mask_secret(value: str | None) -> str | None:
+    normalized = str(value or "").strip()
+    if not normalized:
+        return None
+    if len(normalized) <= 2:
+        return "*" * len(normalized)
+    return f"{normalized[0]}{'*' * (len(normalized) - 2)}{normalized[-1]}"
+
+
+def serialize_proxy_record(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": record.get("id"),
+        "ip": record.get("ip"),
+        "port": record.get("port"),
+        "protocol": record.get("protocol"),
+        "username": record.get("username"),
+        "password_masked": mask_secret(record.get("password")),
+        "region": record.get("region"),
+        "type": record.get("type"),
+        "status": record.get("status"),
+        "last_checked_at": record.get("last_checked_at"),
+        "last_latency_ms": record.get("last_latency_ms"),
+        "last_error": record.get("last_error"),
+        "last_check_result": record.get("last_check_result"),
+        "created_at": record.get("created_at"),
+        "updated_at": record.get("updated_at"),
+    }
+
+
+def serialize_account_record(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": record.get("id"),
+        "platform": record.get("platform"),
+        "account": record.get("account"),
+        "password_masked": mask_secret(record.get("password")),
+        "twofa_masked": mask_secret(record.get("twofa")),
+        "token_masked": mask_secret(record.get("token")),
+        "email": record.get("email"),
+        "email_password_masked": mask_secret(record.get("email_password")),
+        "status": record.get("status"),
+        "verify_status": record.get("verify_status"),
+        "verify_message": record.get("verify_message"),
+        "verify_checked_at": record.get("verify_checked_at"),
+        "verify_http_status": record.get("verify_http_status"),
+        "verify_latency_ms": record.get("verify_latency_ms"),
+        "extra_fields": record.get("extra_fields") or {},
+        "created_at": record.get("created_at"),
+        "updated_at": record.get("updated_at"),
+    }
+
+
+def normalize_delimiter(value: str | None) -> str:
+    delimiter = str(value or "").strip()
+    if delimiter == r"\t":
+        return "\t"
+    return delimiter
+
+
+def parse_account_line(
+    *, line: str, delimiter: str, field_order: list[str]
+) -> tuple[dict[str, str], dict[str, str]]:
+    if not delimiter:
+        raise ValueError("分隔符不能为空")
+    parts = [segment.strip() for segment in str(line).split(delimiter)]
+    if len(parts) != len(field_order):
+        raise ValueError(
+            f"字段数量不匹配，期望 {len(field_order)} 列，实际 {len(parts)} 列"
+        )
+
+    original_fields: dict[str, str] = {}
+    canonical_fields: dict[str, str] = {}
+    for index, field_name in enumerate(field_order):
+        raw_name = str(field_name or "").strip()
+        if not raw_name:
+            raise ValueError(f"字段模板第 {index + 1} 个名称为空")
+        value = parts[index]
+        original_fields[raw_name] = value
+
+        canonical_name = canonical_field_name(raw_name)
+        if canonical_name and canonical_name not in canonical_fields and value:
+            canonical_fields[canonical_name] = value
+
+    return original_fields, canonical_fields
+
+
+@app.get("/api/proxies")
+def get_proxies(type: str | None = None, status: str | None = None) -> dict[str, Any]:
+    try:
+        records = list_proxy_records(proxy_type=type, status=status)
+    except ValueError as e:
+        return {"success": False, "message": str(e), "proxies": [], "count": 0}
+
+    # 新记录通常在列表尾部，这里倒序返回，前端可直接展示最近添加项。
+    serialized = [serialize_proxy_record(item) for item in reversed(records)]
+    return {"success": True, "proxies": serialized, "count": len(serialized)}
+
+
+@app.post("/api/proxies")
+def create_proxy(payload: ProxyCreateRequest) -> dict[str, Any]:
+    try:
+        if payload.raw and payload.raw.strip():
+            parsed = parse_proxy_input(payload.raw.strip())
+            record = create_proxy_record(
+                ip=str(parsed.get("ip") or ""),
+                port=int(parsed.get("port") or 0),
+                protocol=(payload.protocol or parsed.get("protocol") or "http"),
+                username=payload.username if payload.username is not None else parsed.get("username"),
+                password=payload.password if payload.password is not None else parsed.get("password"),
+                region=payload.region,
+                proxy_type=payload.type,
+            )
+        else:
+            if payload.ip is None or payload.port is None:
+                return {"success": False, "message": "ip 和 port 不能为空"}
+            record = create_proxy_record(
+                ip=payload.ip,
+                port=payload.port,
+                protocol=payload.protocol,
+                username=payload.username,
+                password=payload.password,
+                region=payload.region,
+                proxy_type=payload.type,
+            )
+    except ValueError as e:
+        return {"success": False, "message": str(e)}
+    except Exception as e:
+        return {"success": False, "message": f"创建代理失败: {e}"}
+
+    return {
+        "success": True,
+        "message": "代理已添加",
+        "proxy": serialize_proxy_record(record),
+    }
+
+
+@app.post("/api/proxies/batch")
+def create_proxy_batch(payload: ProxyBatchCreateRequest) -> dict[str, Any]:
+    normalized_items = [str(item).strip() for item in payload.items if str(item).strip()]
+    if not normalized_items:
+        return {
+            "success": False,
+            "message": "未提供有效代理输入",
+            "success_count": 0,
+            "failure_count": 0,
+            "proxies": [],
+            "failures": [],
+        }
+
+    created: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    for raw in normalized_items:
+        try:
+            parsed = parse_proxy_input(raw)
+            record = create_proxy_record(
+                ip=str(parsed.get("ip") or ""),
+                port=int(parsed.get("port") or 0),
+                protocol=payload.protocol or str(parsed.get("protocol") or "http"),
+                username=parsed.get("username"),
+                password=parsed.get("password"),
+                region=payload.region,
+                proxy_type=payload.type,
+            )
+            created.append(record)
+        except Exception as e:
+            failures.append({"raw": raw, "reason": str(e)})
+
+    success_count = len(created)
+    failure_count = len(failures)
+    message = "批量添加完成"
+    if success_count == 0:
+        message = "批量添加失败"
+    elif failure_count > 0:
+        message = "批量添加完成（部分失败）"
+
+    return {
+        "success": success_count > 0,
+        "partial_success": success_count > 0 and failure_count > 0,
+        "message": message,
+        "success_count": success_count,
+        "failure_count": failure_count,
+        "proxies": [serialize_proxy_record(item) for item in created],
+        "failures": failures,
+    }
+
+
+@app.delete("/api/proxies/{proxy_id}")
+def delete_proxy(proxy_id: str) -> dict[str, Any]:
+    deleted = delete_proxy_record(proxy_id)
+    if not deleted:
+        return {"success": False, "message": "代理不存在或删除失败"}
+    return {"success": True, "message": "代理已删除"}
+
+
+@app.post("/api/proxies/{proxy_id}/test")
+def test_proxy(proxy_id: str, payload: ProxyTestRequest) -> dict[str, Any]:
+    record = get_proxy_record(proxy_id)
+    if record is None:
+        return {"success": False, "message": "代理不存在"}
+
+    timeout_seconds = max(5, min(int(payload.timeout or 15), 60))
+    check_type = str(payload.check_type or "soft").strip() or "soft"
+    services = payload.services
+
+    try:
+        checker_result = run_checkerproxy_health_check(
+            proxy_record=record,
+            timeout_seconds=timeout_seconds,
+            services=services,
+            check_type=check_type,
+        )
+        status = str(checker_result.get("status") or "dead").strip().lower()
+        if status not in {"active", "slow", "dead"}:
+            status = "dead"
+        latency_ms = checker_result.get("latency_ms")
+        message = str(checker_result.get("message") or "代理检测失败")
+        success = bool(checker_result.get("success")) and status in {"active", "slow"}
+
+        updated = update_proxy_record(
+            proxy_id,
+            status=status,
+            last_checked_at=datetime.now().isoformat(timespec="seconds"),
+            last_latency_ms=latency_ms,
+            last_error=None if success else message,
+            last_check_result=checker_result,
+        )
+        return {
+            "success": success,
+            "message": message,
+            "proxy": serialize_proxy_record(updated or record),
+            "result": checker_result,
+        }
+    except Exception as e:
+        updated = update_proxy_record(
+            proxy_id,
+            status="dead",
+            last_checked_at=datetime.now().isoformat(timespec="seconds"),
+            last_latency_ms=None,
+            last_error=str(e),
+            last_check_result={
+                "success": False,
+                "status": "dead",
+                "message": str(e),
+            },
+        )
+        return {
+            "success": False,
+            "message": f"代理健康检测异常: {e}",
+            "proxy": serialize_proxy_record(updated or record),
+            "result": {
+                "success": False,
+                "status": "dead",
+                "message": str(e),
+            },
+        }
+
+
+@app.get("/api/accounts")
+def get_accounts(platform: str = "twitter") -> dict[str, Any]:
+    records = list_account_records(platform=platform)
+    serialized = [serialize_account_record(item) for item in reversed(records)]
+    return {"success": True, "accounts": serialized, "count": len(serialized)}
+
+
+@app.post("/api/accounts")
+def create_account(payload: AccountCreateRequest) -> dict[str, Any]:
+    try:
+        record = create_account_record(
+            platform=payload.platform,
+            account=payload.account,
+            password=payload.password,
+            twofa=payload.twofa,
+            token=payload.token,
+            email=payload.email,
+            email_password=payload.email_password,
+            status=payload.status,
+        )
+    except ValueError as e:
+        return {"success": False, "message": str(e)}
+    except Exception as e:
+        return {"success": False, "message": f"创建账号失败: {e}"}
+
+    return {
+        "success": True,
+        "message": "账号已添加",
+        "account": serialize_account_record(record),
+    }
+
+
+@app.post("/api/accounts/batch")
+def create_account_batch(payload: AccountBatchCreateRequest) -> dict[str, Any]:
+    delimiter = normalize_delimiter(payload.delimiter)
+    if not delimiter:
+        return {
+            "success": False,
+            "message": "分隔符不能为空",
+            "success_count": 0,
+            "failure_count": 0,
+            "accounts": [],
+            "failures": [],
+        }
+
+    field_order = [str(item).strip() for item in payload.field_order if str(item).strip()]
+    if not field_order:
+        return {
+            "success": False,
+            "message": "字段模板不能为空",
+            "success_count": 0,
+            "failure_count": 0,
+            "accounts": [],
+            "failures": [],
+        }
+
+    lines = [
+        line.strip()
+        for line in str(payload.raw_text or "").splitlines()
+        if str(line).strip()
+    ]
+    if not lines:
+        return {
+            "success": False,
+            "message": "未提供可导入账号行",
+            "success_count": 0,
+            "failure_count": 0,
+            "accounts": [],
+            "failures": [],
+        }
+
+    created: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    for index, line in enumerate(lines, start=1):
+        try:
+            original_fields, canonical_fields = parse_account_line(
+                line=line, delimiter=delimiter, field_order=field_order
+            )
+            account_value = str(
+                canonical_fields.get("account")
+                or (line.split(delimiter)[0].strip() if delimiter in line else "")
+            ).strip()
+            if not account_value:
+                raise ValueError("无法识别账号字段，请在字段模板中包含 account/账号")
+
+            record = create_account_record(
+                platform=payload.platform,
+                account=account_value,
+                password=canonical_fields.get("password"),
+                twofa=canonical_fields.get("twofa"),
+                token=canonical_fields.get("token"),
+                email=canonical_fields.get("email"),
+                email_password=canonical_fields.get("email_password"),
+                status=payload.status,
+                extra_fields=original_fields,
+                raw_line=line,
+            )
+            created.append(record)
+        except Exception as e:
+            failures.append({"line_number": index, "line": line, "reason": str(e)})
+
+    success_count = len(created)
+    failure_count = len(failures)
+    message = "批量导入完成"
+    if success_count == 0:
+        message = "批量导入失败"
+    elif failure_count > 0:
+        message = "批量导入完成（部分失败）"
+
+    return {
+        "success": success_count > 0,
+        "partial_success": success_count > 0 and failure_count > 0,
+        "message": message,
+        "success_count": success_count,
+        "failure_count": failure_count,
+        "accounts": [serialize_account_record(item) for item in created],
+        "failures": failures,
+    }
+
+
+@app.delete("/api/accounts/{account_id}")
+def delete_account(account_id: str) -> dict[str, Any]:
+    record = get_account_record(account_id)
+    if record is None:
+        return {"success": False, "message": "账号不存在"}
+
+    deleted = delete_account_record(account_id)
+    if not deleted:
+        return {"success": False, "message": "账号删除失败"}
+
+    try:
+        remove_account_binding(
+            platform=str(record.get("platform") or "twitter"),
+            account_uid=str(record.get("account") or ""),
+        )
+    except Exception:
+        pass
+
+    return {"success": True, "message": "账号已删除"}
+
+
+@app.post("/api/accounts/verify")
+def verify_accounts(payload: AccountVerifyRequest) -> dict[str, Any]:
+    def _mask_token_for_log(token: str | None) -> str:
+        normalized = str(token or "").strip()
+        if not normalized:
+            return "(empty)"
+        if len(normalized) <= 8:
+            return f"{normalized[:2]}***{normalized[-1:]}"
+        return f"{normalized[:4]}***{normalized[-4:]}"
+
+    requested_ids = [str(item).strip() for item in payload.account_ids if str(item).strip()]
+    unique_ids = list(dict.fromkeys(requested_ids))
+    if not unique_ids:
+        return {
+            "success": False,
+            "message": "未提供可验证账号",
+            "results": [],
+            "success_count": 0,
+            "failure_count": 0,
+            "missing_ids": [],
+        }
+
+    all_accounts = list_account_records(platform="twitter")
+    account_by_id = {str(item.get("id")): item for item in all_accounts}
+    missing_ids = [account_id for account_id in unique_ids if account_id not in account_by_id]
+    target_accounts = [account_by_id[account_id] for account_id in unique_ids if account_id in account_by_id]
+
+    if not target_accounts:
+        return {
+            "success": False,
+            "message": "待验证账号不存在",
+            "results": [],
+            "success_count": 0,
+            "failure_count": 0,
+            "missing_ids": missing_ids,
+        }
+
+    verifiers: dict[str, TwitterAccountVerifierSession] = {}
+    results: list[dict[str, Any]] = []
+    failure_details: list[dict[str, Any]] = []
+    success_count = 0
+    failure_count = 0
+
+    print(
+        f"[verify_accounts] start total_requested={len(unique_ids)} "
+        f"existing={len(target_accounts)} missing={len(missing_ids)}"
+    )
+    if missing_ids:
+        print(f"[verify_accounts] missing_account_ids={missing_ids}")
+
+    try:
+        for account in target_accounts:
+            account_id = str(account.get("id") or "")
+            account_name = str(account.get("account") or "")
+            previous_status = str(account.get("status") or "active")
+            auth_token = parse_auth_token(str(account.get("token") or ""))
+            print(
+                f"[verify_accounts] checking account_id={account_id} "
+                f"account=@{account_name} has_token={bool(auth_token)} "
+                f"token_mask={_mask_token_for_log(auth_token)}"
+            )
+
+            if not auth_token:
+                verify_result = {
+                    "status": "token_missing",
+                    "message": "账号缺少 auth_token，无法验证",
+                    "http_status": None,
+                    "latency_ms": None,
+                    "debug": {
+                        "hint": "请在账号 token 字段中填入 auth_token 或包含 auth_token=... 的 cookie 字符串"
+                    },
+                }
+            else:
+                verifier = verifiers.get(auth_token)
+                if verifier is None:
+                    verifier = TwitterAccountVerifierSession(auth_token=auth_token)
+                    verifiers[auth_token] = verifier
+                verify_result = verifier.verify_screen_name(account_name)
+
+            verify_status = str(verify_result.get("status") or "unknown")
+            mapped_status = map_verification_to_account_status(verify_status, previous_status)
+            verify_message = str(verify_result.get("message") or "").strip() or None
+            verify_http_status = verify_result.get("http_status")
+            verify_latency_ms = verify_result.get("latency_ms")
+            verify_debug = verify_result.get("debug")
+            verify_checked_at = datetime.now().isoformat(timespec="seconds")
+
+            updated_record = update_account_record(
+                account_id,
+                status=mapped_status,
+                verify_status=verify_status,
+                verify_message=verify_message,
+                verify_checked_at=verify_checked_at,
+                verify_http_status=verify_http_status,
+                verify_latency_ms=verify_latency_ms,
+            )
+
+            is_definitive_status = (
+                verify_status in {"active", "protected", "suspended", "locked", "not_found"}
+                or verify_status.startswith("unavailable_")
+            )
+            if is_definitive_status:
+                success_count += 1
+            else:
+                failure_count += 1
+                failure_detail = {
+                    "account_id": account_id,
+                    "account": account_name,
+                    "verify_status": verify_status,
+                    "verify_message": verify_message,
+                    "verify_http_status": verify_http_status,
+                    "verify_latency_ms": verify_latency_ms,
+                    "debug": verify_debug,
+                }
+                failure_details.append(failure_detail)
+                print(
+                    "[verify_accounts][failed] "
+                    f"account_id={account_id} account=@{account_name} "
+                    f"verify_status={verify_status} message={verify_message} "
+                    f"http_status={verify_http_status} latency_ms={verify_latency_ms}"
+                )
+                if verify_debug:
+                    try:
+                        print(
+                            "[verify_accounts][failed][debug] "
+                            + json.dumps(verify_debug, ensure_ascii=False)
+                        )
+                    except Exception:
+                        print(f"[verify_accounts][failed][debug] {verify_debug}")
+
+            if is_definitive_status:
+                print(
+                    "[verify_accounts][ok] "
+                    f"account_id={account_id} account=@{account_name} "
+                    f"verify_status={verify_status} mapped_status={mapped_status} "
+                    f"http_status={verify_http_status} latency_ms={verify_latency_ms}"
+                )
+
+            results.append(
+                {
+                    "account_id": account_id,
+                    "account": account_name,
+                    "status_before": previous_status,
+                    "status_after": mapped_status,
+                    "verify_status": verify_status,
+                    "verify_message": verify_message,
+                    "verify_http_status": verify_http_status,
+                    "verify_latency_ms": verify_latency_ms,
+                    "verify_debug": verify_debug,
+                    "checked_at": verify_checked_at,
+                    "record": serialize_account_record(updated_record or account),
+                }
+            )
+    finally:
+        for verifier in verifiers.values():
+            try:
+                verifier.close()
+            except Exception:
+                pass
+
+    message = "账号验证完成"
+    if success_count == 0:
+        message = "账号验证失败"
+    elif failure_count > 0:
+        message = "账号验证完成（部分失败）"
+
+    print(
+        f"[verify_accounts] done success_count={success_count} "
+        f"failure_count={failure_count} partial_success={success_count > 0 and failure_count > 0}"
+    )
+
+    return {
+        "success": success_count > 0,
+        "partial_success": success_count > 0 and failure_count > 0,
+        "message": message,
+        "results": results,
+        "failure_details": failure_details,
+        "success_count": success_count,
+        "failure_count": failure_count,
+        "missing_ids": missing_ids,
+    }
+
+
 @app.get("/api/health")
 def health_check() -> dict[str, str]:
     ensure_material_tree()
@@ -1008,6 +1702,83 @@ def delete_material_entries(payload: MaterialsDeleteRequest) -> dict[str, Any]:
     }
 
 
+@app.post("/api/materials/user-upload/folders")
+def create_user_upload_folder(payload: UserUploadFolderCreateRequest) -> dict[str, Any]:
+    ensure_material_tree()
+
+    folder_name = sanitize_folder_name(payload.name)
+    if not folder_name:
+        return {"success": False, "message": "目录名不能为空"}
+
+    upload_root = MATERIALS_ROOT / USER_UPLOAD_PLATFORM_NAME
+    target_dir = upload_root / folder_name
+    if target_dir.exists():
+        return {"success": False, "message": "同名目录已存在"}
+
+    try:
+        target_dir.mkdir(parents=True, exist_ok=False)
+    except Exception as e:
+        return {"success": False, "message": f"创建目录失败: {e}"}
+
+    return {
+        "success": True,
+        "message": "目录创建成功",
+        "folder": {
+            "name": folder_name,
+            "relative_path": to_base_relative_path(target_dir),
+        },
+    }
+
+
+@app.post("/api/materials/user-upload/files")
+def upload_user_material_file(
+    folder_path: str = Form(...),
+    file: UploadFile = File(...),
+) -> dict[str, Any]:
+    ensure_material_tree()
+
+    target_dir = resolve_material_delete_target(folder_path)
+    if target_dir is None or not target_dir.exists() or not target_dir.is_dir():
+        return {"success": False, "message": "上传目录不存在"}
+
+    try:
+        relative_to_materials = target_dir.resolve().relative_to(MATERIALS_ROOT.resolve())
+    except Exception:
+        return {"success": False, "message": "上传目录非法"}
+
+    parts = list(relative_to_materials.parts)
+    if len(parts) != 2 or parts[0] != USER_UPLOAD_PLATFORM_NAME:
+        return {"success": False, "message": "仅允许上传到“用户上传”的二级目录"}
+
+    original_name = str(file.filename or "").strip()
+    if not original_name:
+        return {"success": False, "message": "文件名不能为空"}
+
+    safe_name = sanitize_file_name(original_name)
+    target_file = make_unique_file_path(target_dir, safe_name)
+
+    try:
+        with open(target_file, "wb") as out:
+            shutil.copyfileobj(file.file, out)
+    except Exception as e:
+        return {"success": False, "message": f"文件上传失败: {e}"}
+    finally:
+        try:
+            file.file.close()
+        except Exception:
+            pass
+
+    return {
+        "success": True,
+        "message": "文件上传成功",
+        "file": {
+            "name": target_file.name,
+            "relative_path": to_base_relative_path(target_file),
+            "size": target_file.stat().st_size,
+        },
+    }
+
+
 @app.get("/api/materials/tree")
 def get_material_tree() -> dict[str, Any]:
     ensure_material_tree()
@@ -1016,53 +1787,74 @@ def get_material_tree() -> dict[str, Any]:
     for platform_key, platform_display_name in PLATFORM_DIRS.items():
         root_dir = MATERIALS_ROOT / platform_display_name
         second_children = []
-        for second in get_second_level_dirs(platform_key):
-            second_dir = root_dir / second
-            third_folders = sorted(
-                [item for item in second_dir.iterdir() if item.is_dir()],
+        if platform_key == USER_UPLOAD_PLATFORM_KEY:
+            second_dirs = sorted(
+                [
+                    item
+                    for item in root_dir.iterdir()
+                    if item.is_dir() and not item.name.startswith(".")
+                ],
                 key=lambda item: item.name.lower(),
             )
-            third_nodes: list[dict[str, Any]] = []
-            for folder in third_folders:
-                third_id = f"{platform_key}-{second}-{folder.name}"
-                display_name = folder.name
-                author_uid: str | None = None
+            for second_dir in second_dirs:
+                second_id = f"{platform_key}-{second_dir.name}"
+                second_children.append(
+                    {
+                        "id": second_id,
+                        "name": second_dir.name,
+                        "children": build_entry_nodes(second_dir, second_id, depth=1),
+                        "relative_path": to_base_relative_path(second_dir),
+                        "is_dir": True,
+                    }
+                )
+        else:
+            for second in get_second_level_dirs(platform_key):
+                second_dir = root_dir / second
+                third_folders = sorted(
+                    [item for item in second_dir.iterdir() if item.is_dir()],
+                    key=lambda item: item.name.lower(),
+                )
+                third_nodes: list[dict[str, Any]] = []
+                for folder in third_folders:
+                    third_id = f"{platform_key}-{second}-{folder.name}"
+                    display_name = folder.name
+                    author_uid: str | None = None
 
-                if is_bilibili_author_tree(platform_key, second):
-                    meta = read_author_meta(folder)
-                    if isinstance(meta, dict):
-                        author_uid = str(meta.get("uid") or "").strip() or None
-                        author_name = str(meta.get("author_name") or "").strip()
-                        if author_name:
-                            display_name = author_name
-                    if author_uid is None and folder.name.isdigit():
-                        # 兼容旧数据目录（目录名直接是 uid）
-                        author_uid = folder.name
-                    if display_name == folder.name:
-                        inferred_author_name = infer_author_name_from_video_csv(folder)
-                        if inferred_author_name:
-                            display_name = inferred_author_name
+                    if is_bilibili_author_tree(platform_key, second):
+                        meta = read_author_meta(folder)
+                        if isinstance(meta, dict):
+                            author_uid = str(meta.get("uid") or "").strip() or None
+                            author_name = str(meta.get("author_name") or "").strip()
+                            if author_name:
+                                display_name = author_name
+                        if author_uid is None and folder.name.isdigit():
+                            # 兼容旧数据目录（目录名直接是 uid）
+                            author_uid = folder.name
+                        if display_name == folder.name:
+                            inferred_author_name = infer_author_name_from_video_csv(folder)
+                            if inferred_author_name:
+                                display_name = inferred_author_name
 
-                third_node: dict[str, Any] = {
-                    "id": third_id,
-                    "name": display_name,
-                    "children": build_entry_nodes(folder, third_id, depth=1),
-                    "relative_path": to_base_relative_path(folder),
-                    "is_dir": True,
-                }
-                if author_uid:
-                    third_node["author_uid"] = author_uid
-                third_nodes.append(third_node)
+                    third_node: dict[str, Any] = {
+                        "id": third_id,
+                        "name": display_name,
+                        "children": build_entry_nodes(folder, third_id, depth=1),
+                        "relative_path": to_base_relative_path(folder),
+                        "is_dir": True,
+                    }
+                    if author_uid:
+                        third_node["author_uid"] = author_uid
+                    third_nodes.append(third_node)
 
-            second_children.append(
-                {
-                    "id": f"{platform_key}-{second}",
-                    "name": second,
-                    "children": third_nodes,
-                    "relative_path": to_base_relative_path(second_dir),
-                    "is_dir": True,
-                }
-            )
+                second_children.append(
+                    {
+                        "id": f"{platform_key}-{second}",
+                        "name": second,
+                        "children": third_nodes,
+                        "relative_path": to_base_relative_path(second_dir),
+                        "is_dir": True,
+                    }
+                )
 
         roots.append(
             {

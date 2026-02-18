@@ -1,0 +1,354 @@
+[
+  {
+    "id": "9d29b35464b9474a9290168b021c5779",
+    "ip": "usdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-201875-region-us",
+    "password": "59751a2451fa4c0a",
+    "region": null,
+    "type": "monitor",
+    "status": "slow",
+    "last_checked_at": "2026-02-16T05:52:04",
+    "last_latency_ms": 2050,
+    "last_error": null,
+    "health_status": "unhealthy",
+    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "ip_address": null,
+    "country": null,
+    "city": null,
+    "isp": null,
+    "stage_results": {
+      "stage1_ipinfo": {
+        "success": false,
+        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
+      },
+      "stage1_httpbin_backup": {
+        "success": false,
+        "reason": "httpbin backup check failed: 400 Bad Request"
+      }
+    },
+    "created_at": "2026-02-16T02:41:12",
+    "updated_at": "2026-02-16T05:52:04",
+    "last_check_result": {
+      "success": true,
+      "status": "slow",
+      "message": "代理深度检测完成 (评分=3.9, 解锁=9/11, 延迟=2050ms)",
+      "task_id": "e4c9d3ee-8d1a-4f21-8071-27bd17958c37",
+      "submit_http_status": 200,
+      "submit_response_preview": "{\"success\":true,\"message\":\"success\",\"data\":{\"bad\":[],\"dsnCount\":1,\"inspectionsCount\":24,\"services\":[\"facebook\",\"google\",\"yandex\",\"tiktok\",\"youtube\",\"vk\",\"twitch\",\"spotify\",\"twitter\",\"instagram\",\"pinterest\"]},\"errors\":[]}",
+      "dsn": "userID-2608-orderid-201875-region-us:59751a2451fa4c0a@usdata.lumidaili.com:10000",
+      "protocol_layer": "http",
+      "real_ip": "2.58.38.115",
+      "latency_seconds": 2.05,
+      "latency_ms": 2050,
+      "score": 3.9,
+      "proxy_type": "Corporate",
+      "country": "United States",
+      "region": "Texas",
+      "city": "Dallas",
+      "services": [
+        {
+          "name": "instagram",
+          "ok": true,
+          "latency_seconds": 1.71
+        },
+        {
+          "name": "twitch",
+          "ok": true,
+          "latency_seconds": 2.7
+        },
+        {
+          "name": "facebook",
+          "ok": false,
+          "latency_seconds": 2.84
+        },
+        {
+          "name": "yandex",
+          "ok": true,
+          "latency_seconds": 4.65
+        },
+        {
+          "name": "pinterest",
+          "ok": true,
+          "latency_seconds": 1.56
+        },
+        {
+          "name": "twitter",
+          "ok": false,
+          "latency_seconds": 1.49
+        },
+        {
+          "name": "google",
+          "ok": true,
+          "latency_seconds": 2.82
+        },
+        {
+          "name": "youtube",
+          "ok": true,
+          "latency_seconds": 3.24
+        },
+        {
+          "name": "vk",
+          "ok": true,
+          "latency_seconds": 2.34
+        },
+        {
+          "name": "tiktok",
+          "ok": true,
+          "latency_seconds": 2.87
+        },
+        {
+          "name": "spotify",
+          "ok": true,
+          "latency_seconds": 1.75
+        }
+      ]
+    }
+  },
+  {
+    "id": "c5a96dc6dfa54cd1a93f64dbe4cac18d",
+    "ip": "asdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-18098-region-us",
+    "password": "330d976b7d0c23e4",
+    "region": null,
+    "type": "monitor",
+    "status": "dead",
+    "last_checked_at": "2026-02-16T02:56:46",
+    "last_latency_ms": null,
+    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "health_status": "unhealthy",
+    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "ip_address": null,
+    "country": null,
+    "city": null,
+    "isp": null,
+    "stage_results": {
+      "stage1_ipinfo": {
+        "success": false,
+        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
+      },
+      "stage1_httpbin_backup": {
+        "success": false,
+        "reason": "httpbin backup check failed: 400 Bad Request"
+      }
+    },
+    "created_at": "2026-02-16T02:41:12",
+    "updated_at": "2026-02-16T02:56:53"
+  },
+  {
+    "id": "0a35daa241914f09b03103726d620c76",
+    "ip": "asdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-202796-region-us",
+    "password": "cb3cd1dbc6bef765",
+    "region": null,
+    "type": "monitor",
+    "status": "dead",
+    "last_checked_at": "2026-02-16T02:56:38",
+    "last_latency_ms": null,
+    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "health_status": "unhealthy",
+    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "ip_address": null,
+    "country": null,
+    "city": null,
+    "isp": null,
+    "stage_results": {
+      "stage1_ipinfo": {
+        "success": false,
+        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
+      },
+      "stage1_httpbin_backup": {
+        "success": false,
+        "reason": "httpbin backup check failed: 400 Bad Request"
+      }
+    },
+    "created_at": "2026-02-16T02:41:12",
+    "updated_at": "2026-02-16T02:56:46"
+  },
+  {
+    "id": "16d38adfbeee4b60ae902cb72528cb14",
+    "ip": "asdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-202796-region-any",
+    "password": "cb3cd1dbc6bef765",
+    "region": null,
+    "type": "monitor",
+    "status": "dead",
+    "last_checked_at": "2026-02-16T02:56:31",
+    "last_latency_ms": null,
+    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "health_status": "unhealthy",
+    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "ip_address": null,
+    "country": null,
+    "city": null,
+    "isp": null,
+    "stage_results": {
+      "stage1_ipinfo": {
+        "success": false,
+        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
+      },
+      "stage1_httpbin_backup": {
+        "success": false,
+        "reason": "httpbin backup check failed: 400 Bad Request"
+      }
+    },
+    "created_at": "2026-02-16T02:41:12",
+    "updated_at": "2026-02-16T02:56:38"
+  },
+  {
+    "id": "51e8c149af4443eda0605e37b17e740b",
+    "ip": "usdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-18098-region-us",
+    "password": "330d976b7d0c23e4",
+    "region": null,
+    "type": "monitor",
+    "status": "dead",
+    "last_checked_at": "2026-02-16T02:56:24",
+    "last_latency_ms": null,
+    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "health_status": "unhealthy",
+    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "ip_address": null,
+    "country": null,
+    "city": null,
+    "isp": null,
+    "stage_results": {
+      "stage1_ipinfo": {
+        "success": false,
+        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
+      },
+      "stage1_httpbin_backup": {
+        "success": false,
+        "reason": "httpbin backup check failed: 400 Bad Request"
+      }
+    },
+    "created_at": "2026-02-16T02:41:12",
+    "updated_at": "2026-02-16T02:56:31"
+  },
+  {
+    "id": "74bcd5deeb834396ae0ce7cfbfc42023",
+    "ip": "usdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-17798-region-us",
+    "password": "123321",
+    "region": null,
+    "type": "monitor",
+    "status": "dead",
+    "last_checked_at": "2026-02-16T02:56:17",
+    "last_latency_ms": null,
+    "last_error": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "health_status": "unhealthy",
+    "health_reason": "Stage 1 Failed: ipinfo=ipinfo.io check failed: Server disconnected without sending a response. | httpbin=httpbin backup check failed: 400 Bad Request",
+    "ip_address": null,
+    "country": null,
+    "city": null,
+    "isp": null,
+    "stage_results": {
+      "stage1_ipinfo": {
+        "success": false,
+        "reason": "ipinfo.io check failed: Server disconnected without sending a response."
+      },
+      "stage1_httpbin_backup": {
+        "success": false,
+        "reason": "httpbin backup check failed: 400 Bad Request"
+      }
+    },
+    "created_at": "2026-02-16T02:49:36",
+    "updated_at": "2026-02-16T02:56:24"
+  },
+  {
+    "id": "13d9430463624a7aa7a7d79c6c98ad5d",
+    "ip": "usdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-201875-region-us",
+    "password": "59751a2451fa4c0a",
+    "region": null,
+    "type": "publish",
+    "status": "active",
+    "last_checked_at": null,
+    "last_latency_ms": null,
+    "last_error": null,
+    "last_check_result": null,
+    "created_at": "2026-02-16T05:49:44",
+    "updated_at": "2026-02-16T05:49:44"
+  },
+  {
+    "id": "ac6c5b87e635429488e8ac047dae5ec1",
+    "ip": "asdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-18098-region-us",
+    "password": "330d976b7d0c23e4",
+    "region": null,
+    "type": "publish",
+    "status": "active",
+    "last_checked_at": null,
+    "last_latency_ms": null,
+    "last_error": null,
+    "last_check_result": null,
+    "created_at": "2026-02-16T05:49:44",
+    "updated_at": "2026-02-16T05:49:44"
+  },
+  {
+    "id": "1531cf26e9d64c738c455037e134e9bf",
+    "ip": "asdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-202796-region-us",
+    "password": "cb3cd1dbc6bef765",
+    "region": null,
+    "type": "publish",
+    "status": "active",
+    "last_checked_at": null,
+    "last_latency_ms": null,
+    "last_error": null,
+    "last_check_result": null,
+    "created_at": "2026-02-16T05:49:44",
+    "updated_at": "2026-02-16T05:49:44"
+  },
+  {
+    "id": "18bdb4716d224fc0a5fce7a3ba33f084",
+    "ip": "asdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-202796-region-any",
+    "password": "cb3cd1dbc6bef765",
+    "region": null,
+    "type": "publish",
+    "status": "active",
+    "last_checked_at": null,
+    "last_latency_ms": null,
+    "last_error": null,
+    "last_check_result": null,
+    "created_at": "2026-02-16T05:49:44",
+    "updated_at": "2026-02-16T05:49:44"
+  },
+  {
+    "id": "4ca923655da64e2386e03f1db51e3fd1",
+    "ip": "usdata.lumidaili.com",
+    "port": 10000,
+    "protocol": "http",
+    "username": "userID-2608-orderid-18098-region-us",
+    "password": "330d976b7d0c23e4",
+    "region": null,
+    "type": "publish",
+    "status": "active",
+    "last_checked_at": null,
+    "last_latency_ms": null,
+    "last_error": null,
+    "last_check_result": null,
+    "created_at": "2026-02-16T05:49:44",
+    "updated_at": "2026-02-16T05:49:44"
+  }
+]
