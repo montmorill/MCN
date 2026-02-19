@@ -25,5 +25,23 @@
     "proxy_id": "18bdb4716d224fc0a5fce7a3ba33f084",
     "created_at": "2026-02-19T04:20:24",
     "updated_at": "2026-02-19T04:20:24"
+  },
+  {
+    "id": "6e9189e81ac640758742f578d9aa476c",
+    "platform": "twitter",
+    "account_uid": "97b02bf701ba408494611eb49bbd5d90",
+    "account_name": "114514",
+    "proxy_id": "ac6c5b87e635429488e8ac047dae5ec1",
+    "created_at": "2026-02-19T19:32:14",
+    "updated_at": "2026-02-19T19:32:14"
+  },
+  {
+    "id": "abd1d9ea957245ed8058aaa2030bfe34",
+    "platform": "twitter",
+    "account_uid": "7ec1d20174104158a84146facbabbc5d",
+    "account_name": "MarjorieFe85669",
+    "proxy_id": "4ca923655da64e2386e03f1db51e3fd1",
+    "created_at": "2026-02-19T19:32:14",
+    "updated_at": "2026-02-19T19:32:14"
   }
 ]

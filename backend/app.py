@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 import requests
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from account_store import (
@@ -110,6 +111,7 @@ class MaterialsDeleteRequest(BaseModel):
 
 class UserUploadFolderCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=80)
+    parent_path: str | None = None
 
 
 class ProxyCreateRequest(BaseModel):
@@ -305,6 +307,10 @@ def validate_material_delete_target(target: Path) -> tuple[bool, str]:
 
     # materials/<用户上传>/<二级目录> 为用户创建目录，允许删除。
     if depth == 2 and target.is_dir() and platform_name == USER_UPLOAD_PLATFORM_NAME:
+        return True, ""
+
+    # "用户上传"下任意深度的文件夹和文件均允许删除（depth >= 2）。
+    if platform_name == USER_UPLOAD_PLATFORM_NAME and depth >= 2:
         return True, ""
 
     # materials/<一级目录>/<二级目录> 为系统默认目录，禁止删除。
@@ -2107,7 +2113,21 @@ def create_user_upload_folder(payload: UserUploadFolderCreateRequest) -> dict[st
         return {"success": False, "message": "目录名不能为空"}
 
     upload_root = MATERIALS_ROOT / USER_UPLOAD_PLATFORM_NAME
-    target_dir = upload_root / folder_name
+
+    # 支持在任意深度的父目录下创建子目录
+    parent_relative = getattr(payload, "parent_path", None) or ""
+    if parent_relative:
+        parent_target = resolve_material_delete_target(parent_relative)
+        if parent_target is None or not parent_target.exists() or not parent_target.is_dir():
+            return {"success": False, "message": "父目录不存在"}
+        try:
+            parent_target.resolve().relative_to(upload_root.resolve())
+        except Exception:
+            return {"success": False, "message": "仅允许在用户上传目录下创建子目录"}
+        target_dir = parent_target / folder_name
+    else:
+        target_dir = upload_root / folder_name
+
     if target_dir.exists():
         return {"success": False, "message": "同名目录已存在"}
 
@@ -2143,8 +2163,8 @@ def upload_user_material_file(
         return {"success": False, "message": "上传目录非法"}
 
     parts = list(relative_to_materials.parts)
-    if len(parts) != 2 or parts[0] != USER_UPLOAD_PLATFORM_NAME:
-        return {"success": False, "message": "仅允许上传到“用户上传”的二级目录"}
+    if len(parts) < 1 or parts[0] != USER_UPLOAD_PLATFORM_NAME:
+        return {"success": False, "message": "仅允许上传到用户上传目录下"}
 
     original_name = str(file.filename or "").strip()
     if not original_name:
@@ -2175,6 +2195,37 @@ def upload_user_material_file(
     }
 
 
+PREVIEWABLE_EXTENSIONS = {
+    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".ico",
+    ".mp4", ".webm", ".mov", ".avi", ".mkv",
+    ".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a",
+    ".pdf", ".txt", ".csv", ".json", ".md", ".log",
+    ".m4s",
+}
+
+
+@app.get("/api/materials/preview")
+def preview_material_file(path: str = "") -> Any:
+    target = resolve_material_delete_target(path)
+    if target is None or not target.exists() or not target.is_file():
+        return {"success": False, "message": "文件不存在"}
+
+    try:
+        target.resolve().relative_to(MATERIALS_ROOT.resolve())
+    except Exception:
+        return {"success": False, "message": "文件路径非法"}
+
+    ext = target.suffix.lower()
+    if ext not in PREVIEWABLE_EXTENSIONS:
+        return {"success": False, "message": f"不支持预览此文件类型 ({ext})"}
+
+    return FileResponse(
+        path=str(target),
+        filename=target.name,
+        media_type=None,
+    )
+
+
 @app.get("/api/materials/tree")
 def get_material_tree() -> dict[str, Any]:
     ensure_material_tree()
@@ -2198,7 +2249,7 @@ def get_material_tree() -> dict[str, Any]:
                     {
                         "id": second_id,
                         "name": second_dir.name,
-                        "children": build_entry_nodes(second_dir, second_id, depth=1),
+                        "children": build_entry_nodes(second_dir, second_id, depth=4),
                         "relative_path": to_base_relative_path(second_dir),
                         "is_dir": True,
                     }

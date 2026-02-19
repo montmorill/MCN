@@ -3,10 +3,13 @@ import {
   CheckCircle2,
   ChevronRight,
   Circle,
+  Eye,
+  File as FileIcon,
   Folder,
   FolderOpen,
+  FolderPlus,
   Loader2,
-  Plus,
+  Trash2,
   Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -181,6 +184,7 @@ export function MaterialFolderBrowser({
   const [actionError, setActionError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const uploadFileInputRef = useRef<HTMLInputElement | null>(null)
+  const uploadTargetPathRef = useRef<string>("")
 
   const loadMaterialTree = useCallback(async () => {
     setLoading(true)
@@ -274,6 +278,9 @@ export function MaterialFolderBrowser({
   const showRightPanel = Boolean(activeSub || activeAuthorFolder)
   const showFourthPanel = Boolean(
     activeThird && (activeSub || (activeAuthorFolder && !isPendingAuthorContext))
+  )
+  const isUserUploadThirdFolder = Boolean(
+    isUserUploadRoot && activeSub && activeThird && activeThird.isDir !== false
   )
 
   useEffect(() => {
@@ -447,22 +454,23 @@ export function MaterialFolderBrowser({
     }
   }
 
-  const handleCreateUserUploadFolder = async () => {
+  const handleCreateUserUploadFolder = async (parentPath?: string) => {
     if (!isUserUploadRoot) return
-    const folderName = window.prompt("请输入“用户上传”二级目录名称")
+    const label = parentPath ? "请输入子目录名称" : "请输入二级目录名称"
+    const folderName = window.prompt(label)
     if (!folderName || !folderName.trim()) return
 
     try {
       setIsCreatingUploadFolder(true)
       setActionError(null)
+      const body: Record<string, string> = { name: folderName.trim() }
+      if (parentPath) body.parent_path = parentPath
       const response = await fetch(`${API_BASE}/api/materials/user-upload/folders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: folderName.trim(),
-        }),
+        body: JSON.stringify(body),
       })
       const result = await response.json()
       if (!response.ok || !result?.success) {
@@ -477,20 +485,25 @@ export function MaterialFolderBrowser({
     }
   }
 
-  const handleUploadButtonClick = () => {
-    if (!activeSub?.relativePath || !isUserUploadRoot) return
+  const handleUploadButtonClick = (targetPath?: string) => {
+    if (!isUserUploadRoot) return
+    const path = targetPath || activeSub?.relativePath
+    if (!path) return
+    uploadTargetPathRef.current = path
     uploadFileInputRef.current?.click()
   }
 
   const handleUserUploadFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file || !activeSub?.relativePath || !isUserUploadRoot) return
+    if (!file || !isUserUploadRoot) return
+    const targetPath = uploadTargetPathRef.current || activeSub?.relativePath
+    if (!targetPath) return
 
     try {
       setIsUploadingFile(true)
       setActionError(null)
       const formData = new FormData()
-      formData.append("folder_path", activeSub.relativePath)
+      formData.append("folder_path", targetPath)
       formData.append("file", file)
 
       const response = await fetch(`${API_BASE}/api/materials/user-upload/files`, {
@@ -525,6 +538,32 @@ export function MaterialFolderBrowser({
 
   const isPathSelectedForDelete = (relativePath?: string) =>
     Boolean(relativePath && selectedDeletePaths.includes(relativePath))
+
+  const handlePreviewFile = (relativePath?: string) => {
+    if (!relativePath) return
+    const url = `${API_BASE}/api/materials/preview?path=${encodeURIComponent(relativePath)}`
+    window.open(url, "_blank")
+  }
+
+  const handleDeleteSingleItem = async (relativePath?: string) => {
+    if (!relativePath) return
+    if (!window.confirm("确定要删除此项吗？")) return
+    try {
+      const response = await fetch(`${API_BASE}/api/materials/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths: [relativePath] }),
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "删除失败")
+      }
+      await loadMaterialTree()
+      window.dispatchEvent(new Event("materials:refresh"))
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "删除失败")
+    }
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -589,12 +628,12 @@ export function MaterialFolderBrowser({
                 <div className="flex items-center justify-end border-y border-white/[0.05] bg-black/35 px-4 py-2">
                   <button
                     type="button"
-                    onClick={handleCreateUserUploadFolder}
+                    onClick={() => void handleCreateUserUploadFolder()}
                     disabled={isCreatingUploadFolder}
                     className="inline-flex h-7 items-center gap-1 rounded-full border border-white/[0.14] px-3 text-xs text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
                   >
-                    <Plus className="size-3.5" />
-                    <span>{isCreatingUploadFolder ? "创建中..." : "新增二级目录"}</span>
+                    <FolderPlus className="size-3.5" />
+                    <span>{isCreatingUploadFolder ? "创建中..." : "新建目录"}</span>
                   </button>
                 </div>
               )}
@@ -799,10 +838,19 @@ export function MaterialFolderBrowser({
           {showRightPanel && (
             <>
               {isUserUploadRoot && activeSub && (
-                <div className="flex items-center justify-end border-y border-white/[0.05] bg-black/35 px-4 py-2">
+                <div className="flex items-center justify-end gap-2 border-y border-white/[0.05] bg-black/35 px-4 py-2">
                   <button
                     type="button"
-                    onClick={handleUploadButtonClick}
+                    onClick={() => void handleCreateUserUploadFolder(activeSub.relativePath)}
+                    disabled={isCreatingUploadFolder}
+                    className="inline-flex h-7 items-center gap-1 rounded-full border border-white/[0.14] px-3 text-xs text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <FolderPlus className="size-3.5" />
+                    <span>新建目录</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUploadButtonClick(activeSub.relativePath)}
                     disabled={isUploadingFile}
                     className="inline-flex h-7 items-center gap-1 rounded-full border border-white/[0.14] px-3 text-xs text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
                   >
@@ -841,42 +889,71 @@ export function MaterialFolderBrowser({
                 {rightPanelFolders.length > 0 ? (
                   rightPanelFolders.map((child) => {
                     if (isUserUploadRoot) {
-                      const canDeleteUploadFile = Boolean(
-                        selectMode &&
-                          child.relativePath &&
-                          child.isDir === false &&
-                          getMaterialDepth(child.relativePath) === 3
-                      )
-                      const isUploadFileSelectedForDelete = isPathSelectedForDelete(
-                        child.relativePath
-                      )
-
-                      if (canDeleteUploadFile && child.relativePath) {
-                        return (
-                          <li key={child.id}>
-                            <button
-                              type="button"
-                              onClick={() => toggleDeleteSelection(child.relativePath!)}
-                              className="flex h-11 w-full items-center gap-2.5 px-5 text-left text-sm text-zinc-300 transition-colors hover:bg-white/[0.025]"
-                            >
-                              {isUploadFileSelectedForDelete ? (
-                                <CheckCircle2 className="size-4 shrink-0 text-red-400" />
-                              ) : (
-                                <Circle className="size-4 shrink-0 text-zinc-500" />
-                              )}
-                              <Folder className="size-4 shrink-0 text-zinc-500" />
-                              <span className="min-w-0 truncate">{child.name}</span>
-                            </button>
-                          </li>
-                        )
-                      }
+                      const isFile = child.isDir === false
+                      const isFolder = !isFile
+                      const isThirdActive = activeThirdId === child.id && isFolder
 
                       return (
-                        <li key={child.id}>
-                          <div className="flex h-11 w-full items-center gap-2.5 px-5 text-sm text-zinc-300">
-                            <Folder className="size-4 shrink-0 text-zinc-500" />
-                            <span className="min-w-0 truncate">{child.name}</span>
-                          </div>
+                        <li key={child.id} className="group/upload-item">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isFolder) {
+                                setActiveThirdId((prev) =>
+                                  prev === child.id ? null : child.id
+                                )
+                              } else {
+                                handlePreviewFile(child.relativePath)
+                              }
+                            }}
+                            className={cn(
+                              "flex h-11 w-full items-center justify-between px-5 text-left text-sm transition-colors hover:bg-white/[0.025]",
+                              isThirdActive && "bg-white/[0.05] text-zinc-100"
+                            )}
+                          >
+                            <span className="flex min-w-0 items-center gap-2.5">
+                              {isFolder ? (
+                                isThirdActive ? (
+                                  <FolderOpen className="size-4 shrink-0 text-zinc-300" />
+                                ) : (
+                                  <Folder className="size-4 shrink-0 text-zinc-500" />
+                                )
+                              ) : (
+                                <FileIcon className="size-4 shrink-0 text-zinc-500" />
+                              )}
+                              <span className="min-w-0 truncate">{child.name}</span>
+                            </span>
+                            <span className="flex shrink-0 items-center gap-1">
+                              {isFile && (
+                                <Eye className="size-3.5 text-zinc-600 opacity-0 transition-opacity group-hover/upload-item:opacity-100" />
+                              )}
+                              {isFolder && (
+                                <span className="text-xs text-zinc-500">
+                                  {child.children.length}
+                                </span>
+                              )}
+                              {child.relativePath && (
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    void handleDeleteSingleItem(child.relativePath)
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      void handleDeleteSingleItem(child.relativePath)
+                                    }
+                                  }}
+                                  className="ml-1 inline-flex size-6 items-center justify-center rounded-md text-zinc-600 opacity-0 transition-opacity hover:text-red-400 group-hover/upload-item:opacity-100"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </span>
+                              )}
+                            </span>
+                          </button>
                         </li>
                       )
                     }
@@ -1038,18 +1115,97 @@ export function MaterialFolderBrowser({
           )}
         >
           {showFourthPanel && activeThird && (
-            <ul className="divide-y divide-white/[0.05] border-y border-white/[0.05]">
-              {activeThird.children.length > 0 ? (
-                activeThird.children.map((child) => {
-                  const canDeleteFile = Boolean(
-                    selectMode &&
-                      child.relativePath &&
-                      child.isDir === false &&
-                      [4, 5].includes(getMaterialDepth(child.relativePath))
-                  )
-                  const isFileSelectedForDelete = isPathSelectedForDelete(
-                    child.relativePath
-                  )
+            <>
+              {isUserUploadThirdFolder && activeThird.relativePath && (
+                <div className="flex items-center justify-end gap-2 border-y border-white/[0.05] bg-black/35 px-4 py-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleCreateUserUploadFolder(activeThird.relativePath)}
+                    disabled={isCreatingUploadFolder}
+                    className="inline-flex h-7 items-center gap-1 rounded-full border border-white/[0.14] px-3 text-xs text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <FolderPlus className="size-3.5" />
+                    <span>新建目录</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUploadButtonClick(activeThird.relativePath)}
+                    disabled={isUploadingFile}
+                    className="inline-flex h-7 items-center gap-1 rounded-full border border-white/[0.14] px-3 text-xs text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <Upload className="size-3.5" />
+                    <span>{isUploadingFile ? "上传中..." : "上传文件"}</span>
+                  </button>
+                </div>
+              )}
+              <ul className="divide-y divide-white/[0.05] border-b border-white/[0.05]">
+                {activeThird.children.length > 0 ? (
+                  activeThird.children.map((child) => {
+                    if (isUserUploadThirdFolder) {
+                      const isFile = child.isDir === false
+                      return (
+                        <li key={child.id} className="group/fourth-item">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isFile) {
+                                handlePreviewFile(child.relativePath)
+                              }
+                            }}
+                            className="flex h-11 w-full items-center justify-between px-5 text-left text-sm text-zinc-300 transition-colors hover:bg-white/[0.025]"
+                          >
+                            <span className="flex min-w-0 items-center gap-2.5">
+                              {isFile ? (
+                                <FileIcon className="size-4 shrink-0 text-zinc-500" />
+                              ) : (
+                                <Folder className="size-4 shrink-0 text-zinc-500" />
+                              )}
+                              <span className="min-w-0 truncate">{child.name}</span>
+                            </span>
+                            <span className="flex shrink-0 items-center gap-1">
+                              {isFile && (
+                                <Eye className="size-3.5 text-zinc-600 opacity-0 transition-opacity group-hover/fourth-item:opacity-100" />
+                              )}
+                              {!isFile && (
+                                <span className="text-xs text-zinc-500">
+                                  {child.children.length}
+                                </span>
+                              )}
+                              {child.relativePath && (
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    void handleDeleteSingleItem(child.relativePath)
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      void handleDeleteSingleItem(child.relativePath)
+                                    }
+                                  }}
+                                  className="ml-1 inline-flex size-6 items-center justify-center rounded-md text-zinc-600 opacity-0 transition-opacity hover:text-red-400 group-hover/fourth-item:opacity-100"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </span>
+                              )}
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    }
+
+                    const canDeleteFile = Boolean(
+                      selectMode &&
+                        child.relativePath &&
+                        child.isDir === false &&
+                        [4, 5].includes(getMaterialDepth(child.relativePath))
+                    )
+                    const isFileSelectedForDelete = isPathSelectedForDelete(
+                      child.relativePath
+                    )
 
                   if (canDeleteFile && child.relativePath) {
                     return (
@@ -1086,6 +1242,7 @@ export function MaterialFolderBrowser({
                 </li>
               )}
             </ul>
+            </>
           )}
         </div>
       </aside>
