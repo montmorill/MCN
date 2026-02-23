@@ -9,7 +9,7 @@ import {
   Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { CreatePublishTaskDialog } from "@/components/dashboard/create-publish-task-dialog"
+import { CreatePublishTaskDialog } from "@/components/create-publish-task-dialog"
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
 

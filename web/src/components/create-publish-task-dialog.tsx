@@ -4,8 +4,6 @@ import {
   Hash,
   Image,
   MessageSquare,
-  Minus,
-  Plus,
   Video,
   X,
 } from "lucide-react"
@@ -18,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { MaterialPickerDialog } from "./material-picker-dialog"
+import { MaterialPickerDialog } from "./dashboard/material-picker-dialog"
 import { cn } from "@/lib/utils"
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"

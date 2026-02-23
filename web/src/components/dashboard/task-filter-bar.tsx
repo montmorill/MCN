@@ -9,7 +9,7 @@ import {
   Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { CreateTaskDialog } from "@/components/dashboard/create-task-dialog"
+import { CreateTaskDialog } from "@/components/create-task-dialog"
 
 interface FilterOption {
   id: string

@@ -478,6 +478,7 @@ def launch_task_worker(task_id: str) -> int:
     try:
         worker_env = dict(os.environ)
         worker_env["PYTHONUNBUFFERED"] = "1"
+        worker_env["PYTHONUTF8"] = "1"
         process = subprocess.Popen(
             [sys.executable, "-u", str(TASK_WORKER_SCRIPT), task_id],
             cwd=str(BASE_DIR),

@@ -2,12 +2,16 @@
 Publish queue and history storage — JSON-file based, matching project patterns.
 """
 
-import fcntl
 import json
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 
 BASE_DIR = Path(__file__).resolve().parent
 RUNTIME_DIR = BASE_DIR / "runtime"
@@ -57,7 +61,8 @@ def _read_and_write_locked(path: Path, mutator: Any) -> Any:
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_suffix(path.suffix + ".lock")
     with open(lock_path, "w") as lock_file:
-        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        if fcntl is not None:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
         try:
             records = _read_list(path)
             result = mutator(records)
@@ -69,7 +74,8 @@ def _read_and_write_locked(path: Path, mutator: Any) -> Any:
             _write_list_atomic(path, new_records)
             return return_value
         finally:
-            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            if fcntl is not None:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
 
 
 # ---------------------------------------------------------------------------

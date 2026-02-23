@@ -7,7 +7,6 @@ import {
   Loader2,
   Send,
   ListPlus,
-  Trash2,
   Video,
   X,
 } from "lucide-react"
