@@ -170,14 +170,15 @@ class GQLClient:
         self, is_note_tweet, text, media_entities,
         poll_uri, reply_to, attachment_url,
         community_id, share_with_followers,
-        richtext_options, edit_tweet_id, limit_mode
+        richtext_options, edit_tweet_id, limit_mode,
+        possibly_sensitive=False
     ):
         variables = {
             'tweet_text': text,
             'dark_request': False,
             'media': {
                 'media_entities': media_entities,
-                'possibly_sensitive': False
+                'possibly_sensitive': possibly_sensitive
             },
             'semantic_annotation_ids': [],
         }

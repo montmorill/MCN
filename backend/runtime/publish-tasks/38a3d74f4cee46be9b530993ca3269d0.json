@@ -1,0 +1,49 @@
+{
+  "id": "38a3d74f4cee46be9b530993ca3269d0",
+  "kind": "publish-text",
+  "task_type": "publish",
+  "publish_mode": "single-tweet",
+  "collect_mode": "not-applicable",
+  "title": "发布推文 — 文本",
+  "description": "执行 Twitter 推文发布。",
+  "status": "failed",
+  "progress": {
+    "current": 2,
+    "total": 2,
+    "percent": 100
+  },
+  "created_at": "2026-02-23T05:05:32",
+  "updated_at": "2026-02-23T05:05:56",
+  "started_at": "2026-02-23T05:05:32",
+  "ended_at": "2026-02-23T05:05:56",
+  "payload": {
+    "account_id": "7ec1d20174104158a84146facbabbc5d",
+    "content": {
+      "text": "major!!",
+      "media_paths": null,
+      "is_sensitive": false
+    },
+    "strategy": {
+      "type": "immediate",
+      "scheduled_time": null
+    }
+  },
+  "results": [],
+  "result_summary": {
+    "total_count": 1,
+    "success_count": 0,
+    "failure_count": 1,
+    "tweet_id": null,
+    "tweet_url": null
+  },
+  "error": "Twitter 检测到自动化行为 (226). 可能原因: 账号较新/信任度低、短时间内发推太频繁、内容触发风控。建议: 等待几分钟后重试，或换用更成熟的账号。",
+  "logs": [
+    "[05:05:32] 任务已创建",
+    "[05:05:32] 已提交立即执行",
+    "[05:05:32] 开始发布推文 → 账号: @MarjorieFe85669",
+    "[05:05:32] 推文内容: major!!...",
+    "[05:05:32] 正在初始化发布会话 (获取ct0, 验证auth_token)...",
+    "[05:05:56] 发布失败 (耗时: 24.6s, 错误码: anti_automation, 可重试: True)",
+    "[05:05:56] 错误详情: Twitter 检测到自动化行为 (226). 可能原因: 账号较新/信任度低、短时间内发推太频繁、内容触发风控。建议: 等待几分钟后重试，或换用更成熟的账号。"
+  ]
+}

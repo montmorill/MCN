@@ -28,7 +28,7 @@ const filters: FilterOption[] = [
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
 
 type CreateTaskPayload = {
-  taskType: "collect" | "publish"
+  taskType: "collect"
   collectMode: "single-work" | "author" | null
   title: string
   description: string

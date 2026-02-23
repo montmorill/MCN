@@ -1,0 +1,114 @@
+[
+  {
+    "id": "385cc6ace3e642ba935590896a46e1c6",
+    "account_id": "60068304a6b447e388ce07a379fedd7c",
+    "tweet_type": "single-tweet",
+    "content": {
+      "text": "DuarteLora #DuarteLora",
+      "media_paths": null,
+      "is_sensitive": false
+    },
+    "status": "failed",
+    "tweet_id": null,
+    "tweet_url": null,
+    "error_message": "账号 DuarteLora65746 没有绑定代理，为防止直连封号已拒绝发布。请先在代理池中为该账号绑定代理。",
+    "queue_item_id": null,
+    "published_at": "2026-02-23T03:51:43"
+  },
+  {
+    "id": "909c1e4d115647b7a70b752c8db2574f",
+    "account_id": "test",
+    "tweet_type": "single-tweet",
+    "content": {
+      "text": "hello",
+      "media_paths": null,
+      "is_sensitive": false
+    },
+    "status": "failed",
+    "tweet_id": null,
+    "tweet_url": null,
+    "error_message": "账号不存在: test",
+    "queue_item_id": null,
+    "published_at": "2026-02-23T03:53:09"
+  },
+  {
+    "id": "20945bf4f87447a2b4cc81d04fc9bc06",
+    "account_id": "60068304a6b447e388ce07a379fedd7c",
+    "tweet_type": "single-tweet",
+    "content": {
+      "text": "DuarteLora65746 #DuarteLora65746",
+      "media_paths": null,
+      "is_sensitive": false
+    },
+    "status": "failed",
+    "tweet_id": null,
+    "tweet_url": null,
+    "error_message": "账号 DuarteLora65746 没有绑定代理，为防止直连封号已拒绝发布。请先在代理池中为该账号绑定代理。",
+    "queue_item_id": null,
+    "published_at": "2026-02-23T04:14:25"
+  },
+  {
+    "id": "9f801f9961764290883005b9551504e6",
+    "account_id": "60068304a6b447e388ce07a379fedd7c",
+    "tweet_type": "single-tweet",
+    "content": {
+      "text": "DuarteLora65746 #DuarteLora65746",
+      "media_paths": null,
+      "is_sensitive": false
+    },
+    "status": "failed",
+    "tweet_id": null,
+    "tweet_url": null,
+    "error_message": "auth_token 验证失败: 400 Bad Request",
+    "queue_item_id": null,
+    "published_at": "2026-02-23T04:17:59"
+  },
+  {
+    "id": "8f2e54b534fa4e77ab799d12bd4f9be7",
+    "account_id": "60068304a6b447e388ce07a379fedd7c",
+    "tweet_type": "single-tweet",
+    "content": {
+      "text": "DuarteLora65746 #DuarteLora65746...",
+      "media_paths": null,
+      "is_sensitive": false
+    },
+    "status": "failed",
+    "tweet_id": null,
+    "tweet_url": null,
+    "error_message": "代理连接失败: 400 Bad Request",
+    "queue_item_id": null,
+    "published_at": "2026-02-23T04:28:24"
+  },
+  {
+    "id": "55c75d266e8444fc94182640b31bd122",
+    "account_id": "60068304a6b447e388ce07a379fedd7c",
+    "tweet_type": "single-tweet",
+    "content": {
+      "text": "DuarteLora65746 #DuarteLora65746...",
+      "media_paths": null,
+      "is_sensitive": false
+    },
+    "status": "failed",
+    "tweet_id": null,
+    "tweet_url": null,
+    "error_message": "Twitter GraphQL 错误: Authorization: This request looks like it might be automated. To protect our users from spam and other malicious activity, we can't complete this action right now. Please try again later. (226)",
+    "queue_item_id": null,
+    "published_at": "2026-02-23T04:55:28"
+  },
+  {
+    "id": "55ecc8a55ef44f6eb30c34be469e6df3",
+    "account_id": "7ec1d20174104158a84146facbabbc5d",
+    "tweet_type": "single-tweet",
+    "content": {
+      "text": "major!!",
+      "media_paths": null,
+      "is_sensitive": false
+    },
+    "status": "failed",
+    "tweet_id": null,
+    "tweet_url": null,
+    "error_message": "Twitter 检测到自动化行为 (226). 可能原因: 账号较新/信任度低、短时间内发推太频繁、内容触发风控。建议: 等待几分钟后重试，或换用更成熟的账号。",
+    "queue_item_id": null,
+    "published_at": "2026-02-23T05:05:56"
+  }
+]

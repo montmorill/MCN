@@ -33,15 +33,17 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronsUpDown,
+  ClipboardList,
   Cloud,
+  Download,
   Folder,
   LogOut,
   PanelLeftIcon,
   Plus,
   Radar,
-  Send,
   Settings,
   Shield,
+  Upload,
   UserPlus,
   Users,
 } from "lucide-react"
@@ -50,13 +52,49 @@ import { NavLink, useLocation } from "react-router-dom"
 type DashboardSidebarProps = React.ComponentProps<typeof Sidebar>
 
 const navItems = [
-  { title: "任务发布", icon: Send, href: "/task-publish" },
   { title: "素材管理", icon: Folder, href: "/materials" },
-  { title: "账号管理", icon: Users, href: "/accounts" },
-  { title: "数据监控", icon: BarChart3 },
+  { title: "数据监控", icon: BarChart3, href: "/monitoring" },
 ]
 
-const sourceGroups = [
+const collapsibleGroups = [
+  {
+    id: "accounts",
+    name: "账号管理",
+    icon: Users,
+    children: [
+      {
+        id: "monitor-accounts",
+        name: "监控账号",
+        icon: BarChart3,
+        href: "/accounts/monitor",
+      },
+      {
+        id: "publish-accounts",
+        name: "发布账号",
+        icon: Upload,
+        href: "/accounts/publish",
+      },
+    ],
+  },
+  {
+    id: "tasks",
+    name: "任务",
+    icon: ClipboardList,
+    children: [
+      {
+        id: "collect-task",
+        name: "采集任务",
+        icon: Download,
+        href: "/tasks/collect",
+      },
+      {
+        id: "publish-task",
+        name: "发布任务",
+        icon: Upload,
+        href: "/tasks/publish",
+      },
+    ],
+  },
   {
     id: "proxy-pools",
     name: "代理池",
@@ -82,6 +120,8 @@ export function DashboardSidebar({ ...props }: DashboardSidebarProps) {
   const { toggleSidebar } = useSidebar()
   const location = useLocation()
   const [expandedItems, setExpandedItems] = React.useState<string[]>([
+    "accounts",
+    "tasks",
     "proxy-pools",
   ])
 
@@ -192,7 +232,7 @@ export function DashboardSidebar({ ...props }: DashboardSidebarProps) {
         <SidebarGroup className="p-0 mt-4">
           <SidebarGroupLabel className="flex h-6 items-center justify-between px-0">
             <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
-              数据源
+              管理
             </span>
             <Button variant="ghost" size="icon" className="size-5">
               <Plus className="size-3" />
@@ -200,7 +240,7 @@ export function DashboardSidebar({ ...props }: DashboardSidebarProps) {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sourceGroups.map((item) => {
+              {collapsibleGroups.map((item) => {
                 const isExpanded = expandedItems.includes(item.id)
                 return (
                   <SidebarMenuItem key={item.id}>

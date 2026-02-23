@@ -94,7 +94,10 @@ def canonical_field_name(raw_key: str) -> str:
     return normalized
 
 
-def list_account_records(platform: str | None = None) -> list[dict[str, Any]]:
+def list_account_records(
+    platform: str | None = None,
+    pool: str | None = None,
+) -> list[dict[str, Any]]:
     records = _read_list(ACCOUNT_STORE_PATH)
     if platform:
         normalized_platform = _normalize_platform(platform)
@@ -102,6 +105,13 @@ def list_account_records(platform: str | None = None) -> list[dict[str, Any]]:
             item
             for item in records
             if str(item.get("platform", "")).strip().lower() == normalized_platform
+        ]
+    if pool:
+        normalized_pool = pool.strip().lower()
+        records = [
+            item
+            for item in records
+            if str(item.get("pool", "")).strip().lower() == normalized_pool
         ]
     return records
 
@@ -126,6 +136,7 @@ def create_account_record(
     email: str | None = None,
     email_password: str | None = None,
     status: str = "unverified",
+    pool: str | None = None,
     extra_fields: dict[str, str] | None = None,
     raw_line: str | None = None,
 ) -> dict[str, Any]:
@@ -140,14 +151,16 @@ def create_account_record(
     normalized_token = _clean_text(token)
     normalized_email = _clean_text(email)
     normalized_email_password = _clean_text(email_password)
+    normalized_pool = (pool or "").strip().lower() or None
 
     records = _read_list(ACCOUNT_STORE_PATH)
     for item in records:
         if (
             str(item.get("platform", "")).strip().lower() == normalized_platform
             and str(item.get("account", "")).strip().lower() == normalized_account.lower()
+            and str(item.get("pool", "")).strip().lower() == (normalized_pool or "")
         ):
-            raise ValueError("账号已存在（platform + account 重复）")
+            raise ValueError("账号已存在（platform + account + pool 重复）")
 
     now = now_iso()
     record = {
@@ -160,6 +173,7 @@ def create_account_record(
         "email": normalized_email,
         "email_password": normalized_email_password,
         "status": normalized_status,
+        "pool": normalized_pool,
         "extra_fields": extra_fields or {},
         "raw_line": _clean_text(raw_line),
         "created_at": now,

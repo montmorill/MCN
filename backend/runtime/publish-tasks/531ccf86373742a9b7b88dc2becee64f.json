@@ -1,0 +1,49 @@
+{
+  "id": "531ccf86373742a9b7b88dc2becee64f",
+  "kind": "publish-text",
+  "task_type": "publish",
+  "publish_mode": "single-tweet",
+  "collect_mode": "not-applicable",
+  "title": "发布推文 — 文本",
+  "description": "执行 Twitter 推文发布。",
+  "status": "failed",
+  "progress": {
+    "current": 2,
+    "total": 2,
+    "percent": 100
+  },
+  "created_at": "2026-02-23T04:55:24",
+  "updated_at": "2026-02-23T04:55:28",
+  "started_at": "2026-02-23T04:55:24",
+  "ended_at": "2026-02-23T04:55:28",
+  "payload": {
+    "account_id": "60068304a6b447e388ce07a379fedd7c",
+    "content": {
+      "text": "DuarteLora65746 #DuarteLora65746...",
+      "media_paths": null,
+      "is_sensitive": false
+    },
+    "strategy": {
+      "type": "immediate",
+      "scheduled_time": null
+    }
+  },
+  "results": [],
+  "result_summary": {
+    "total_count": 1,
+    "success_count": 0,
+    "failure_count": 1,
+    "tweet_id": null,
+    "tweet_url": null
+  },
+  "error": "Twitter GraphQL 错误: Authorization: This request looks like it might be automated. To protect our users from spam and other malicious activity, we can't complete this action right now. Please try again later. (226)",
+  "logs": [
+    "[04:55:24] 任务已创建",
+    "[04:55:24] 已提交立即执行",
+    "[04:55:24] 开始发布推文 → 账号: @DuarteLora65746",
+    "[04:55:24] 推文内容: DuarteLora65746 #DuarteLora65746......",
+    "[04:55:24] 正在初始化发布会话 (获取ct0, 验证auth_token)...",
+    "[04:55:28] 发布失败 (耗时: 3.9s, 错误码: unknown, 可重试: True)",
+    "[04:55:28] 错误详情: Twitter GraphQL 错误: Authorization: This request looks like it might be automated. To protect our users from spam and other malicious activity, we can't complete this action right now. Please try again later. (226)"
+  ]
+}

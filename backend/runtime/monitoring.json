@@ -1,0 +1,773 @@
+{
+  "snapshots": {
+    "b007cad5c0f24e14ad5a4c7dc7861cc2": [
+      {
+        "followers_count": 118452,
+        "following_count": 253,
+        "tweet_count": 1722,
+        "listed_count": 480,
+        "profile_name": null,
+        "profile_image_url": null,
+        "bio": "@youyuxi 的中文小号。@voidzerodev 创始人，开源软件开发者，Vue / Vite 作者。此号只聊技术无关的闲话（偶尔破戒警告",
+        "created_at": null,
+        "captured_at": "2026-02-23T10:18:52"
+      },
+      {
+        "followers_count": 118453,
+        "following_count": 253,
+        "tweet_count": 1722,
+        "listed_count": 480,
+        "profile_name": null,
+        "profile_image_url": null,
+        "bio": "@youyuxi 的中文小号。@voidzerodev 创始人，开源软件开发者，Vue / Vite 作者。此号只聊技术无关的闲话（偶尔破戒警告",
+        "created_at": null,
+        "captured_at": "2026-02-23T10:24:04"
+      }
+    ],
+    "152b48bb0aec402f817d88419901787d": [
+      {
+        "followers_count": 733056,
+        "following_count": 5421,
+        "tweet_count": 58904,
+        "listed_count": 3165,
+        "profile_name": null,
+        "profile_image_url": null,
+        "bio": "This is the only official account.  Impersonators will be reported.\nPHOTOGRAPHER/SET DESIGN/人體藝術家/場景設計師 RAW, POWERFUL EXPRESSION TO THE ORIGIN OF BEAUTY",
+        "created_at": null,
+        "captured_at": "2026-02-23T10:27:03"
+      },
+      {
+        "followers_count": 733056,
+        "following_count": 5421,
+        "tweet_count": 58904,
+        "listed_count": 3165,
+        "profile_name": null,
+        "profile_image_url": null,
+        "bio": "This is the only official account.  Impersonators will be reported.\nPHOTOGRAPHER/SET DESIGN/人體藝術家/場景設計師 RAW, POWERFUL EXPRESSION TO THE ORIGIN OF BEAUTY",
+        "created_at": null,
+        "captured_at": "2026-02-23T10:38:05"
+      },
+      {
+        "followers_count": 733058,
+        "following_count": 5421,
+        "tweet_count": 58904,
+        "listed_count": 3165,
+        "profile_name": null,
+        "profile_image_url": null,
+        "bio": "This is the only official account.  Impersonators will be reported.\nPHOTOGRAPHER/SET DESIGN/人體藝術家/場景設計師 RAW, POWERFUL EXPRESSION TO THE ORIGIN OF BEAUTY",
+        "created_at": null,
+        "captured_at": "2026-02-23T10:59:34"
+      }
+    ]
+  },
+  "tweet_metrics": {
+    "b007cad5c0f24e14ad5a4c7dc7861cc2": [
+      {
+        "tweet_id": "2025217905751908590",
+        "text": "结论：4.6 Opus 更强。\n\n两边在做到 e2e 测试阶段的时候都遇到了按照设计的用法跑却出错。而且问题并不是出在它们这一次 session 自己写的代码 scope 里面，而是所依赖的的其他代码里的 bug\n\nCodex 的第一反应都是在自己的测试里面绕过去。但两个问题 Claude 都精确定位到了上游的 bug 并且直接修掉了",
+        "created_at": "Sat Feb 21 14:35:50 +0000 2026",
+        "views": 120155,
+        "likes": 411,
+        "retweets": 26,
+        "replies": 42,
+        "quotes": 5,
+        "bookmarks": 114,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2024815406582726766",
+        "text": "今天让 ai 做了一个很复杂的 Vue 相关的功能，框架层面的，一开始页面完全是挂掉的，我觉得 4.6 Opus 终于也有极限啊，没想到在指点它起一个真的服务器然后用 playwright debug 之后居然真的修好了。仔细看了下它有些地方实现我看得都很累，感觉以后有一天可能不懂 vue 这个梗要成真了…",
+        "created_at": "Fri Feb 20 11:56:26 +0000 2026",
+        "views": 165813,
+        "likes": 1073,
+        "retweets": 41,
+        "replies": 64,
+        "quotes": 13,
+        "bookmarks": 210,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2024494415692386591",
+        "text": "笑死 https://t.co/OLXFvaRWkR",
+        "created_at": "Thu Feb 19 14:40:56 +0000 2026",
+        "views": 89999,
+        "likes": 520,
+        "retweets": 16,
+        "replies": 16,
+        "quotes": 3,
+        "bookmarks": 43,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2023892606317703654",
+        "text": "AI coding 一个实践：每次做重大功能/改动之前先用 plan mode 做一个 research / design doc，然后再基于这个 doc 做实现的 plan。\n\ndesign doc 加上编号存到一个文件夹里，commit 进仓库。这就类似你的设计思路的 db migrations，记录着整个项目进化思考的脉络。",
+        "created_at": "Tue Feb 17 22:49:34 +0000 2026",
+        "views": 166032,
+        "likes": 1596,
+        "retweets": 178,
+        "replies": 106,
+        "quotes": 20,
+        "bookmarks": 1247,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2023584724661531022",
+        "text": "香槟开早了，昨天做的一个类型相关的功能测试过了但其实该报错的都没报 🤪",
+        "created_at": "Tue Feb 17 02:26:09 +0000 2026",
+        "views": 57993,
+        "likes": 191,
+        "retweets": 5,
+        "replies": 23,
+        "quotes": 3,
+        "bookmarks": 16,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2023424054397678042",
+        "text": "4.6 Opus 和 5.3 Codex 真的有点言出法随的感觉了",
+        "created_at": "Mon Feb 16 15:47:42 +0000 2026",
+        "views": 167828,
+        "likes": 488,
+        "retweets": 11,
+        "replies": 37,
+        "quotes": 2,
+        "bookmarks": 129,
+        "source": "regular"
+      }
+    ],
+    "152b48bb0aec402f817d88419901787d": [
+      {
+        "tweet_id": "2025735636175790366",
+        "text": "RT @benjaminbardou: Revolution\n[a complete circle or turn round a centralpoint, axis]\n[to roll back, to bring back] https://t.co/6T37KzVHUi",
+        "created_at": "Mon Feb 23 00:53:06 +0000 2026",
+        "views": 2,
+        "likes": 0,
+        "retweets": 978,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2025641777491832832/img/z3s3Fm0iGwM33H5V.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025638160420811128",
+        "text": "RT @solisolsoli: Horsemen of the Apocalypse by Yuri Galetsky https://t.co/ipRF3tdhSf",
+        "created_at": "Sun Feb 22 18:25:46 +0000 2026",
+        "views": 8,
+        "likes": 0,
+        "retweets": 503,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBnlyRnXoAAvRG0.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025635853217988819",
+        "text": "RT @parianmarble: Adolf Münzer https://t.co/4euqezjXwj",
+        "created_at": "Sun Feb 22 18:16:36 +0000 2026",
+        "views": 8,
+        "likes": 0,
+        "retweets": 68,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBuib-xWUAA3XhC.jpg",
+          "https://pbs.twimg.com/media/HBuiotYWYAAMhuX.jpg",
+          "https://pbs.twimg.com/media/HBuiqvyWIAAAnzS.jpg",
+          "https://pbs.twimg.com/media/HBuir4kXgAAKGLO.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025627194920493306",
+        "text": "RT @marysia_cc: Ito Shinsui (1898-1972)  \nWashing the Hair https://t.co/AqXtdv56SR",
+        "created_at": "Sun Feb 22 17:42:12 +0000 2026",
+        "views": 12,
+        "likes": 0,
+        "retweets": 589,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBuBeFGXEAEPKWV.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025623982708564088",
+        "text": "雙飛 https://t.co/wEjZXpVLIz",
+        "created_at": "Sun Feb 22 17:29:26 +0000 2026",
+        "views": 16026,
+        "likes": 423,
+        "retweets": 13,
+        "replies": 1,
+        "quotes": 0,
+        "bookmarks": 28,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBx2RXka4AAy8Ev.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025577524542177444",
+        "text": "你会和哪种人合作？",
+        "created_at": "Sun Feb 22 14:24:49 +0000 2026",
+        "views": 26962,
+        "likes": 10,
+        "retweets": 0,
+        "replies": 5,
+        "quotes": 0,
+        "bookmarks": 2,
+        "media_urls": [],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025548269867446602",
+        "text": "RT @TWENTY_ONE1997: Andromeda Galaxy\n\nTWENTY ONE\n\n（The Andromeda Galaxy (M31/NGC 224) is the largest barred spiral galaxy in the Local Grou…",
+        "created_at": "Sun Feb 22 12:28:35 +0000 2026",
+        "views": 1,
+        "likes": 0,
+        "retweets": 6,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025536811511238914",
+        "text": "https://t.co/14bA1XJTtX",
+        "created_at": "Sun Feb 22 11:43:03 +0000 2026",
+        "views": 10962,
+        "likes": 47,
+        "retweets": 2,
+        "replies": 1,
+        "quotes": 0,
+        "bookmarks": 3,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBwm_b_akAAVfle.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025447697449451615",
+        "text": "RT @oscillate23: Angel Michael binding Satan. William Blake. 1805 https://t.co/r0OaByjdUY",
+        "created_at": "Sun Feb 22 05:48:56 +0000 2026",
+        "views": 17,
+        "likes": 0,
+        "retweets": 109,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBtliGMWAAEkFND.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025439697972134086",
+        "text": "RT @vizurantvis: Cannabis Self Care~🍃💨✨ https://t.co/4eLjUrKJK6",
+        "created_at": "Sun Feb 22 05:17:09 +0000 2026",
+        "views": 12,
+        "likes": 0,
+        "retweets": 582,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2025327900694626304/img/Y0cdHwls3TL7fCDG.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      }
+    ]
+  },
+  "accounts": [
+    {
+      "id": "b007cad5c0f24e14ad5a4c7dc7861cc2",
+      "username": "yuxiyou",
+      "note": null,
+      "refresh_interval_hours": 24,
+      "collect_scope": {
+        "mode": "custom",
+        "regular": {
+          "type": "days",
+          "days": 10
+        },
+        "highlights": {
+          "type": "days",
+          "days": 10
+        }
+      },
+      "added_at": "2026-02-23T10:18:38",
+      "last_scraped_at": "2026-02-23T10:24:04"
+    },
+    {
+      "id": "152b48bb0aec402f817d88419901787d",
+      "username": "WANIMAL912",
+      "note": null,
+      "refresh_interval_hours": 1,
+      "collect_scope": {
+        "mode": "custom",
+        "regular": {
+          "type": "count",
+          "count": 10
+        },
+        "highlights": {
+          "type": "count",
+          "count": 10
+        }
+      },
+      "added_at": "2026-02-23T10:26:56",
+      "last_scraped_at": "2026-02-23T10:59:34"
+    }
+  ],
+  "tweet_metrics_regular": {
+    "b007cad5c0f24e14ad5a4c7dc7861cc2": [
+      {
+        "tweet_id": "2025217905751908590",
+        "text": "结论：4.6 Opus 更强。\n\n两边在做到 e2e 测试阶段的时候都遇到了按照设计的用法跑却出错。而且问题并不是出在它们这一次 session 自己写的代码 scope 里面，而是所依赖的的其他代码里的 bug\n\nCodex 的第一反应都是在自己的测试里面绕过去。但两个问题 Claude 都精确定位到了上游的 bug 并且直接修掉了",
+        "created_at": "Sat Feb 21 14:35:50 +0000 2026",
+        "views": 120155,
+        "likes": 411,
+        "retweets": 26,
+        "replies": 42,
+        "quotes": 5,
+        "bookmarks": 114,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2024815406582726766",
+        "text": "今天让 ai 做了一个很复杂的 Vue 相关的功能，框架层面的，一开始页面完全是挂掉的，我觉得 4.6 Opus 终于也有极限啊，没想到在指点它起一个真的服务器然后用 playwright debug 之后居然真的修好了。仔细看了下它有些地方实现我看得都很累，感觉以后有一天可能不懂 vue 这个梗要成真了…",
+        "created_at": "Fri Feb 20 11:56:26 +0000 2026",
+        "views": 165813,
+        "likes": 1073,
+        "retweets": 41,
+        "replies": 64,
+        "quotes": 13,
+        "bookmarks": 210,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2024494415692386591",
+        "text": "笑死 https://t.co/OLXFvaRWkR",
+        "created_at": "Thu Feb 19 14:40:56 +0000 2026",
+        "views": 89999,
+        "likes": 520,
+        "retweets": 16,
+        "replies": 16,
+        "quotes": 3,
+        "bookmarks": 43,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2023892606317703654",
+        "text": "AI coding 一个实践：每次做重大功能/改动之前先用 plan mode 做一个 research / design doc，然后再基于这个 doc 做实现的 plan。\n\ndesign doc 加上编号存到一个文件夹里，commit 进仓库。这就类似你的设计思路的 db migrations，记录着整个项目进化思考的脉络。",
+        "created_at": "Tue Feb 17 22:49:34 +0000 2026",
+        "views": 166032,
+        "likes": 1596,
+        "retweets": 178,
+        "replies": 106,
+        "quotes": 20,
+        "bookmarks": 1247,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2023584724661531022",
+        "text": "香槟开早了，昨天做的一个类型相关的功能测试过了但其实该报错的都没报 🤪",
+        "created_at": "Tue Feb 17 02:26:09 +0000 2026",
+        "views": 57993,
+        "likes": 191,
+        "retweets": 5,
+        "replies": 23,
+        "quotes": 3,
+        "bookmarks": 16,
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2023424054397678042",
+        "text": "4.6 Opus 和 5.3 Codex 真的有点言出法随的感觉了",
+        "created_at": "Mon Feb 16 15:47:42 +0000 2026",
+        "views": 167828,
+        "likes": 488,
+        "retweets": 11,
+        "replies": 37,
+        "quotes": 2,
+        "bookmarks": 129,
+        "source": "regular"
+      }
+    ],
+    "152b48bb0aec402f817d88419901787d": [
+      {
+        "tweet_id": "2025735636175790366",
+        "text": "RT @benjaminbardou: Revolution\n[a complete circle or turn round a centralpoint, axis]\n[to roll back, to bring back] https://t.co/6T37KzVHUi",
+        "created_at": "Mon Feb 23 00:53:06 +0000 2026",
+        "views": 2,
+        "likes": 0,
+        "retweets": 978,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2025641777491832832/img/z3s3Fm0iGwM33H5V.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025638160420811128",
+        "text": "RT @solisolsoli: Horsemen of the Apocalypse by Yuri Galetsky https://t.co/ipRF3tdhSf",
+        "created_at": "Sun Feb 22 18:25:46 +0000 2026",
+        "views": 8,
+        "likes": 0,
+        "retweets": 503,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBnlyRnXoAAvRG0.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025635853217988819",
+        "text": "RT @parianmarble: Adolf Münzer https://t.co/4euqezjXwj",
+        "created_at": "Sun Feb 22 18:16:36 +0000 2026",
+        "views": 8,
+        "likes": 0,
+        "retweets": 68,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBuib-xWUAA3XhC.jpg",
+          "https://pbs.twimg.com/media/HBuiotYWYAAMhuX.jpg",
+          "https://pbs.twimg.com/media/HBuiqvyWIAAAnzS.jpg",
+          "https://pbs.twimg.com/media/HBuir4kXgAAKGLO.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025627194920493306",
+        "text": "RT @marysia_cc: Ito Shinsui (1898-1972)  \nWashing the Hair https://t.co/AqXtdv56SR",
+        "created_at": "Sun Feb 22 17:42:12 +0000 2026",
+        "views": 12,
+        "likes": 0,
+        "retweets": 589,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBuBeFGXEAEPKWV.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025623982708564088",
+        "text": "雙飛 https://t.co/wEjZXpVLIz",
+        "created_at": "Sun Feb 22 17:29:26 +0000 2026",
+        "views": 16026,
+        "likes": 423,
+        "retweets": 13,
+        "replies": 1,
+        "quotes": 0,
+        "bookmarks": 28,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBx2RXka4AAy8Ev.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025577524542177444",
+        "text": "你会和哪种人合作？",
+        "created_at": "Sun Feb 22 14:24:49 +0000 2026",
+        "views": 26962,
+        "likes": 10,
+        "retweets": 0,
+        "replies": 5,
+        "quotes": 0,
+        "bookmarks": 2,
+        "media_urls": [],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025548269867446602",
+        "text": "RT @TWENTY_ONE1997: Andromeda Galaxy\n\nTWENTY ONE\n\n（The Andromeda Galaxy (M31/NGC 224) is the largest barred spiral galaxy in the Local Grou…",
+        "created_at": "Sun Feb 22 12:28:35 +0000 2026",
+        "views": 1,
+        "likes": 0,
+        "retweets": 6,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025536811511238914",
+        "text": "https://t.co/14bA1XJTtX",
+        "created_at": "Sun Feb 22 11:43:03 +0000 2026",
+        "views": 10962,
+        "likes": 47,
+        "retweets": 2,
+        "replies": 1,
+        "quotes": 0,
+        "bookmarks": 3,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBwm_b_akAAVfle.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025447697449451615",
+        "text": "RT @oscillate23: Angel Michael binding Satan. William Blake. 1805 https://t.co/r0OaByjdUY",
+        "created_at": "Sun Feb 22 05:48:56 +0000 2026",
+        "views": 17,
+        "likes": 0,
+        "retweets": 109,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBtliGMWAAEkFND.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      },
+      {
+        "tweet_id": "2025439697972134086",
+        "text": "RT @vizurantvis: Cannabis Self Care~🍃💨✨ https://t.co/4eLjUrKJK6",
+        "created_at": "Sun Feb 22 05:17:09 +0000 2026",
+        "views": 12,
+        "likes": 0,
+        "retweets": 582,
+        "replies": 0,
+        "quotes": 0,
+        "bookmarks": 0,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2025327900694626304/img/Y0cdHwls3TL7fCDG.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "regular"
+      }
+    ]
+  },
+  "tweet_metrics_highlights": {
+    "152b48bb0aec402f817d88419901787d": [
+      {
+        "tweet_id": "2024992213974089748",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1 https://t.co/93pgBg0Cp4",
+        "created_at": "Fri Feb 20 23:39:01 +0000 2026",
+        "views": 89400,
+        "likes": 241,
+        "retweets": 8,
+        "replies": 34,
+        "quotes": 0,
+        "bookmarks": 55,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2024992140762513409/img/ZSIqaL4cwudej0WZ.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      },
+      {
+        "tweet_id": "2024046616219472274",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1 https://t.co/foSkWxiOhR",
+        "created_at": "Wed Feb 18 09:01:32 +0000 2026",
+        "views": 105961,
+        "likes": 397,
+        "retweets": 22,
+        "replies": 39,
+        "quotes": 0,
+        "bookmarks": 86,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBbbqxlbYAEFapo.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      },
+      {
+        "tweet_id": "2023769485535310289",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1 https://t.co/UZ6uG6oitv",
+        "created_at": "Tue Feb 17 14:40:19 +0000 2026",
+        "views": 80963,
+        "likes": 545,
+        "retweets": 18,
+        "replies": 27,
+        "quotes": 0,
+        "bookmarks": 118,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HBXfngfbIAAwpWt.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      },
+      {
+        "tweet_id": "2021528212199846311",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1\n\nWANIMAL MATE\n@lanArashi1\n@iovoi1234 https://t.co/QJKJX372ya",
+        "created_at": "Wed Feb 11 10:14:18 +0000 2026",
+        "views": 187992,
+        "likes": 1255,
+        "retweets": 57,
+        "replies": 75,
+        "quotes": 0,
+        "bookmarks": 449,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2021528092523864064/img/oULrir9T1Jz31EbZ.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      },
+      {
+        "tweet_id": "2020648867684139259",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1\n\nWANIMAL MATE\n@lanArashi1 https://t.co/PZDXDMScHy",
+        "created_at": "Mon Feb 09 00:00:06 +0000 2026",
+        "views": 111417,
+        "likes": 645,
+        "retweets": 40,
+        "replies": 34,
+        "quotes": 0,
+        "bookmarks": 214,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2020648800021532672/img/JoIMJReeiojvQorM.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      },
+      {
+        "tweet_id": "2020303556491026816",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1 https://t.co/nPiOaX6FnZ",
+        "created_at": "Sun Feb 08 01:07:57 +0000 2026",
+        "views": 121567,
+        "likes": 2205,
+        "retweets": 148,
+        "replies": 44,
+        "quotes": 0,
+        "bookmarks": 601,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2020303048841818112/img/yiHTEh4c2L-6Q1yH.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      },
+      {
+        "tweet_id": "2019645653606101477",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1\n\nWANIMAL MATE\n@wosidiao https://t.co/FOYEigYbY7",
+        "created_at": "Fri Feb 06 05:33:41 +0000 2026",
+        "views": 129614,
+        "likes": 1073,
+        "retweets": 64,
+        "replies": 44,
+        "quotes": 0,
+        "bookmarks": 398,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2019645387821445125/img/c9l-BbISQcouqZLF.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      },
+      {
+        "tweet_id": "2019078291836006550",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1\n\nWANIMAL MATE\n@nnian_ https://t.co/S587TuecIa",
+        "created_at": "Wed Feb 04 15:59:12 +0000 2026",
+        "views": 127927,
+        "likes": 1236,
+        "retweets": 53,
+        "replies": 37,
+        "quotes": 0,
+        "bookmarks": 306,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HAU0_rGasAA0E0C.jpg",
+          "https://pbs.twimg.com/media/HAU0_rFbMAAib9o.jpg",
+          "https://pbs.twimg.com/media/HAU0_rMaUAAUU4-.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      },
+      {
+        "tweet_id": "2017843437748556155",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1\n\nWANIMAL MATE\n@taoliangazhai \n@violetbaby2004 https://t.co/uCjMLoFS7P",
+        "created_at": "Sun Feb 01 06:12:19 +0000 2026",
+        "views": 141198,
+        "likes": 595,
+        "retweets": 21,
+        "replies": 24,
+        "quotes": 0,
+        "bookmarks": 117,
+        "media_urls": [
+          "https://pbs.twimg.com/media/HADR6KXasAA271N.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      },
+      {
+        "tweet_id": "2014241268822638975",
+        "text": "WANIMAL ART 交流群\n\n開放少許名額\n\n月費105 \n年費1050 \n\n沒有詳情\n確認加群的回復 1 https://t.co/RxNh5AbkIU",
+        "created_at": "Thu Jan 22 07:38:35 +0000 2026",
+        "views": 175827,
+        "likes": 283,
+        "retweets": 32,
+        "replies": 57,
+        "quotes": 0,
+        "bookmarks": 98,
+        "media_urls": [
+          "https://pbs.twimg.com/amplify_video_thumb/2014240595611717632/img/nQSL40Q1TZ-6eMCY.jpg"
+        ],
+        "author_name": "WANIMAL | Official",
+        "author_handle": "WANIMAL912",
+        "source": "highlights"
+      }
+    ]
+  }
+}

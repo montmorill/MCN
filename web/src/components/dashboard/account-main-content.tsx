@@ -174,7 +174,12 @@ function formatDateTime(value?: string): string {
   return normalized.replace("T", " ").slice(0, 19)
 }
 
-export function AccountMainContent() {
+type AccountMainContentProps = {
+  pool?: "monitor" | "publish"
+}
+
+export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
+  const poolLabel = pool === "monitor" ? "监控" : pool === "publish" ? "发布" : ""
   const [openMap, setOpenMap] = useState<Record<AccountStatus, boolean>>({
     active: true,
     abnormal: false,
@@ -219,7 +224,9 @@ export function AccountMainContent() {
     setLoading(true)
     setErrorMessage(null)
     try {
-      const response = await fetch(`${API_BASE}/api/accounts?platform=twitter`)
+      const params = new URLSearchParams({ platform: "twitter" })
+      if (pool) params.set("pool", pool)
+      const response = await fetch(`${API_BASE}/api/accounts?${params}`)
       const payload = await response.json()
       if (!response.ok || !payload?.success) {
         throw new Error(payload?.message || "账号列表加载失败")
@@ -231,7 +238,7 @@ export function AccountMainContent() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [pool])
 
   useEffect(() => {
     void loadAccounts()
@@ -239,19 +246,20 @@ export function AccountMainContent() {
 
   // ---------- 加载发布代理列表 + 绑定关系 ----------
 
+  const proxyType = pool === "monitor" ? "monitor" : "publish"
+
   const loadProxiesAndBindings = useCallback(async () => {
     try {
       const [proxyRes, bindingRes] = await Promise.all([
-        fetch(`${API_BASE}/api/proxies?type=publish`),
+        fetch(`${API_BASE}/api/proxies?type=${proxyType}`),
         fetch(`${API_BASE}/api/bindings`),
       ])
       const proxyPayload = await proxyRes.json()
       const bindingPayload = await bindingRes.json()
 
       if (proxyPayload?.success) {
-        // 只取状态可用的发布代理（active / slow）
         const proxies: ProxyItem[] = (proxyPayload.proxies ?? []).filter(
-          (p: ProxyItem) => p.type === "publish" && (p.status === "active" || p.status === "slow")
+          (p: ProxyItem) => p.type === proxyType && (p.status === "active" || p.status === "slow")
         )
         setPublishProxies(proxies)
       }
@@ -261,7 +269,7 @@ export function AccountMainContent() {
     } catch {
       // 静默失败，不影响主流程
     }
-  }, [])
+  }, [proxyType])
 
   useEffect(() => {
     void loadProxiesAndBindings()
@@ -356,7 +364,7 @@ export function AccountMainContent() {
       const response = await fetch(`${API_BASE}/api/bindings/batch-auto-bind`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_ids: selectedAccountIds }),
+        body: JSON.stringify({ account_ids: selectedAccountIds, proxy_type: proxyType }),
       })
       const payload = await response.json()
       if (!payload?.success && payload?.bound_count === 0) {
@@ -484,6 +492,7 @@ export function AccountMainContent() {
           email: singleForm.email.trim() || null,
           email_password: singleForm.emailPassword.trim() || null,
           status: "active",
+          pool: pool || null,
         }),
       })
       const payload = await response.json()
@@ -532,6 +541,7 @@ export function AccountMainContent() {
           delimiter,
           field_order: fieldOrder,
           status: "active",
+          pool: pool || null,
         }),
       })
       const payload = await response.json()
@@ -1037,7 +1047,7 @@ export function AccountMainContent() {
                         value={selectedProxyId ?? ""}
                         onChange={(e) => setSelectedProxyId(e.target.value || null)}
                       >
-                        <option value="">选择发布代理...</option>
+                        <option value="">选择{poolLabel || "发布"}代理...</option>
                         {publishProxies.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.protocol}://{p.ip}:{p.port} ({p.status})

@@ -6,7 +6,6 @@ import {
   FileVideo,
   Minus,
   Plus,
-  Send,
   ScanSearch,
   UserRound,
 } from "lucide-react"
@@ -21,7 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
-type TaskType = "collect" | "publish" | null
+type TaskType = "collect" | null
 type CollectMode = "single-work" | "author" | null
 type AuthorPlatform = "bilibili" | "douyin" | "xiaohongshu" | null
 type AuthorCollectAction = "data-only" | "collect-download" | null
@@ -77,12 +76,6 @@ export function CreateTaskDialog({
         description: "执行内容采集流程。",
       }
     }
-    if (taskType === "publish") {
-      return {
-        title: "发布任务",
-        description: "执行内容发布流程。",
-      }
-    }
     return {
       title: "新任务",
       description: "任务描述",
@@ -91,7 +84,6 @@ export function CreateTaskDialog({
 
   const canCreate = useMemo(() => {
     if (!taskType) return false
-    if (taskType === "publish") return true
     if (!collectMode) return false
     if (collectMode === "single-work") {
       return workLinks.some((link) => link.trim().length > 0)
@@ -210,22 +202,6 @@ export function CreateTaskDialog({
                 <span>采集任务</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setTaskType("publish")
-                  setCollectMode(null)
-                }}
-                className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-colors",
-                  taskType === "publish"
-                    ? "border-white/30 bg-white/[0.10] text-zinc-100"
-                    : "border-white/[0.12] text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-200"
-                )}
-              >
-                <Send className="size-3.5 shrink-0" />
-                <span>发布任务</span>
-              </button>
             </div>
           </div>
 
@@ -450,13 +426,6 @@ export function CreateTaskDialog({
             </div>
           )}
 
-          {taskType === "publish" && (
-            <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
-              <p className="text-xs text-zinc-400">
-                发布任务配置将在下一步开发，目前先完成任务类型选择。
-              </p>
-            </div>
-          )}
         </div>
 
         {errorMessage && (
