@@ -27,7 +27,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
 import {
   BarChart3,
   ChevronDown,
@@ -39,7 +38,6 @@ import {
   Folder,
   LogOut,
   PanelLeftIcon,
-  Plus,
   Radar,
   Settings,
   Shield,
@@ -234,9 +232,6 @@ export function DashboardSidebar({ ...props }: DashboardSidebarProps) {
             <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
               管理
             </span>
-            <Button variant="ghost" size="icon" className="size-5">
-              <Plus className="size-3" />
-            </Button>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -294,20 +289,6 @@ export function DashboardSidebar({ ...props }: DashboardSidebarProps) {
       </SidebarContent>
 
       <SidebarFooter className="px-2.5 pb-3">
-        <div className="group-data-[collapsible=icon]:hidden">
-          <div className="group/sidebar relative flex flex-col gap-2 rounded-lg border p-4 text-sm w-full bg-background">
-            <div className="text-balance text-lg font-semibold leading-tight group-hover/sidebar:underline">
-              Global content workflow, built for scale.
-            </div>
-            <div className="text-muted-foreground">
-              聚合采集、素材编排、定时发布与数据监控的统一操作台。
-            </div>
-            <Button size="sm" className="w-full">
-              创建发布任务
-            </Button>
-          </div>
-        </div>
-
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="h-7 text-sm" onClick={toggleSidebar}>
