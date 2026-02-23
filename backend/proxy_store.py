@@ -1,10 +1,15 @@
 import json
 import uuid
-import fcntl
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
+
+try:
+    import fcntl
+except ModuleNotFoundError:
+    fcntl = None
+
 
 BASE_DIR = Path(__file__).resolve().parent
 RUNTIME_DIR = BASE_DIR / "runtime"
@@ -60,7 +65,8 @@ def _read_and_write_locked(
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_suffix(path.suffix + ".lock")
     with open(lock_path, "w") as lock_file:
-        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        if fcntl:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
         try:
             records = _read_list(path)
             result = mutator(records)
@@ -72,7 +78,8 @@ def _read_and_write_locked(
             _write_list_atomic(path, new_records)
             return return_value
         finally:
-            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            if fcntl:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
 
 
 def _normalize_protocol(value: str | None) -> str:
