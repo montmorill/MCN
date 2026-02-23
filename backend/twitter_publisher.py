@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-import importlib.util
 import re
 import sys
 
@@ -32,43 +31,7 @@ from proxy_store import (
     update_proxy_record,
 )
 
-# Import ClientTransaction directly from source to avoid twikit's heavy __init__
-_twikit_base = Path(__file__).resolve().parent.parent / "twikit-main" / "twikit"
-_ct_pkg = str(_twikit_base / "x_client_transaction")
-if _ct_pkg not in sys.path:
-    sys.path.insert(0, _ct_pkg)
-    sys.path.insert(0, str(_twikit_base / "x_client_transaction"))
-_spec = importlib.util.spec_from_file_location(
-    "x_client_transaction_mod",
-    str(_twikit_base / "x_client_transaction" / "transaction.py"),
-    submodule_search_locations=[str(_twikit_base / "x_client_transaction")],
-)
-_ct_module = importlib.util.module_from_spec(_spec)
-sys.modules["x_client_transaction_mod"] = _ct_module
-# Also need the sub-modules to be importable
-for submod in ("utils", "cubic_curve", "interpolate", "rotation"):
-    sub_path = _twikit_base / "x_client_transaction" / f"{submod}.py"
-    if sub_path.exists():
-        sub_spec = importlib.util.spec_from_file_location(
-            f"x_client_transaction_mod.{submod}", str(sub_path)
-        )
-        sub_module = importlib.util.module_from_spec(sub_spec)
-        sys.modules[f"x_client_transaction_mod.{submod}"] = sub_module
-# Import the package properly
-sys.path.insert(0, str(_twikit_base.parent))
-_x_ct_init = _twikit_base / "x_client_transaction" / "__init__.py"
-if _x_ct_init.exists():
-    _init_spec = importlib.util.spec_from_file_location(
-        "twikit.x_client_transaction",
-        str(_x_ct_init),
-        submodule_search_locations=[str(_twikit_base / "x_client_transaction")],
-    )
-    _init_mod = importlib.util.module_from_spec(_init_spec)
-    sys.modules["twikit.x_client_transaction"] = _init_mod
-    _init_spec.loader.exec_module(_init_mod)
-    ClientTransaction = _init_mod.ClientTransaction
-else:
-    ClientTransaction = None
+from twikit.x_client_transaction import ClientTransaction
 
 logger = logging.getLogger("twitter_publisher")
 logger.setLevel(logging.DEBUG)
