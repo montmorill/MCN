@@ -13,32 +13,26 @@ import time
 import traceback
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from urllib.parse import quote
 
 import requests
 
 from account_store import list_account_records
 from proxy_store import get_proxy_record, list_account_bindings
+from twitter_common import (
+    DEFAULT_USER_AGENT,
+    TWITTER_BEARER_TOKEN,
+    USER_BY_SCREEN_NAME_QUERY_IDS,
+    USER_BY_SCREEN_NAME_SUFFIX,
+    build_api_cookies,
+    build_api_headers,
+    build_proxy_url,
+)
 
 logger = logging.getLogger("monitor_scraper")
 logger.setLevel(logging.DEBUG)
 
-TWITTER_BEARER_TOKEN = (
-    "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D"
-    "1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
-)
-
-DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/131.0.0.0 Safari/537.36"
-)
-
 DEFAULT_TIMEOUT = 25
 PAGE_DELAY = 1.5
-
-USER_BY_SCREEN_NAME_QUERY_IDS = ["AWbeRIdkLtqTRN7yL_H8yw"]
-USER_BY_SCREEN_NAME_SUFFIX = "UserByScreenName"
 USER_TWEETS_QUERY_ID = "QWF3SzpHmykQHsQMixG0cg"
 USER_HIGHLIGHTS_QUERY_ID = "tHFm_XZc_NNi-CfUThwbNw"
 
@@ -110,19 +104,6 @@ HIGHLIGHTS_FEATURES = {
 
 # ── Helpers ──────────────────────────────────────────────────────
 
-def _build_proxy_url(proxy: dict[str, Any]) -> str:
-    protocol = proxy.get("protocol", "http")
-    host = proxy.get("ip", "")
-    port = proxy.get("port", "")
-    username = str(proxy.get("username") or "").strip()
-    password = str(proxy.get("password") or "").strip()
-    if username and password:
-        auth = f"{quote(username, safe='')}:{quote(password, safe='')}@"
-    else:
-        auth = ""
-    return f"{protocol}://{auth}{host}:{port}"
-
-
 def _pick_worker() -> dict[str, Any] | None:
     """Find an active monitor-pool account with a valid proxy binding to use as worker."""
     accounts = list_account_records(platform="twitter", pool="monitor")
@@ -145,7 +126,7 @@ def _pick_worker() -> dict[str, Any] | None:
             continue
         return {
             "auth_token": acct["token"],
-            "proxy_url": _build_proxy_url(proxy),
+            "proxy_url": build_proxy_url(proxy),
             "account_name": acct.get("account", "unknown"),
         }
     return None
@@ -175,19 +156,6 @@ def _create_session(worker: dict[str, Any]) -> tuple[requests.Session, str]:
 
     logger.debug("Session created, ct0 obtained (length=%d)", len(ct0))
     return session, ct0
-
-
-def _api_headers(ct0: str) -> dict[str, str]:
-    return {
-        "authorization": f"Bearer {TWITTER_BEARER_TOKEN}",
-        "x-csrf-token": ct0,
-        "x-twitter-active-user": "yes",
-        "x-twitter-client-language": "en",
-    }
-
-
-def _api_cookies(auth_token: str, ct0: str) -> dict[str, str]:
-    return {"auth_token": auth_token, "ct0": ct0}
 
 
 TWITTER_DATE_FMT = "%a %b %d %H:%M:%S %z %Y"
@@ -299,8 +267,8 @@ def _fetch_profile(
         resp = session.get(
             url,
             params=params,
-            headers=_api_headers(ct0),
-            cookies=_api_cookies(auth_token, ct0),
+            headers=build_api_headers(ct0),
+            cookies=build_api_cookies(auth_token, ct0),
             timeout=DEFAULT_TIMEOUT,
         )
         if resp.status_code == 429:
@@ -379,8 +347,8 @@ def _fetch_tweets_paginated(
             resp = session.get(
                 url,
                 params=params,
-                headers=_api_headers(ct0),
-                cookies=_api_cookies(auth_token, ct0),
+                headers=build_api_headers(ct0),
+                cookies=build_api_cookies(auth_token, ct0),
                 timeout=DEFAULT_TIMEOUT,
             )
         except Exception as e:

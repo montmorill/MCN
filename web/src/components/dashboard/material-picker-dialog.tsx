@@ -18,8 +18,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
+import { apiFetch, API_BASE } from "@/lib/api"
 
 const MEDIA_EXTENSIONS = new Set([
   ".jpg", ".jpeg", ".png", ".gif", ".webp",
@@ -160,8 +159,7 @@ export function MaterialPickerDialog({
   useEffect(() => {
     if (!open) return
     setLoading(true)
-    fetch(`${API_BASE}/api/materials/tree`)
-      .then((r) => r.json())
+    apiFetch<{ roots?: TreeNode[] }>("/api/materials/tree")
       .then((data) => {
         if (data?.roots) setTree(data.roots)
       })

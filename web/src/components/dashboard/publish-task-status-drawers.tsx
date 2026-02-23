@@ -13,8 +13,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
+import { apiFetch, apiDelete } from "@/lib/api"
+import type { PublishTaskStatus, PublishTask } from "@/types"
 
 type StatusDrawer = {
   id: string
@@ -22,41 +22,6 @@ type StatusDrawer = {
   icon: ComponentType
   emptyTitle: string
   emptyDescription: string
-}
-
-type BackendTaskStatus = "pending" | "scheduled" | "running" | "completed" | "failed"
-
-type BackendPublishTask = {
-  id: string
-  kind: string
-  task_type: string
-  publish_mode: string
-  title: string
-  description: string
-  status: BackendTaskStatus
-  created_at: string
-  updated_at: string
-  started_at?: string | null
-  ended_at?: string | null
-  logs?: string[]
-  error?: string | null
-  result_summary?: {
-    total_count?: number
-    success_count?: number
-    failure_count?: number
-    tweet_id?: string | null
-    tweet_url?: string | null
-  }
-  progress?: {
-    current?: number
-    total?: number
-    percent?: number
-  }
-  payload?: {
-    account_id?: string
-    content?: { text?: string; media_paths?: string[] }
-    strategy?: { type?: string; scheduled_time?: string }
-  }
 }
 
 type TaskListItem = {
@@ -67,7 +32,7 @@ type TaskListItem = {
   createdAt: string
   publishMode: string
   accountId: string
-  status: BackendTaskStatus
+  status: PublishTaskStatus
   progressPercent: number
   progressText: string
   logs: string[]
@@ -158,7 +123,7 @@ function formatDateLabel(value: string | undefined): string {
   return value.slice(0, 10)
 }
 
-function normalizeProgress(task: BackendPublishTask): { percent: number; text: string } {
+function normalizeProgress(task: PublishTask): { percent: number; text: string } {
   const rawCurrent = Number(task.progress?.current ?? 0)
   const rawTotal = Number(task.progress?.total ?? 1)
   const rawPercent = Number(task.progress?.percent ?? 0)
@@ -174,7 +139,7 @@ function normalizeProgress(task: BackendPublishTask): { percent: number; text: s
   return { percent, text: `${current}/${total}` }
 }
 
-function getProgressColor(status: BackendTaskStatus): string {
+function getProgressColor(status: PublishTaskStatus): string {
   if (status === "completed") return "bg-emerald-400"
   if (status === "failed") return "bg-rose-400"
   if (status === "running") return "bg-sky-400"
@@ -188,7 +153,7 @@ export function PublishTaskStatusDrawers() {
     completed: false,
     failed: false,
   })
-  const [backendTasks, setBackendTasks] = useState<BackendPublishTask[]>([])
+  const [backendTasks, setBackendTasks] = useState<PublishTask[]>([])
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [selectedTaskFullLogs, setSelectedTaskFullLogs] = useState<string[]>([])
   const [isDeletingTask, setIsDeletingTask] = useState(false)
@@ -197,9 +162,8 @@ export function PublishTaskStatusDrawers() {
 
   const fetchTasks = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/publish-tasks?limit=200`)
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) return
+      const payload = await apiFetch<{ success: boolean; tasks?: PublishTask[] }>("/api/publish-tasks?limit=200")
+      if (!payload?.success) return
       setBackendTasks(Array.isArray(payload.tasks) ? payload.tasks : [])
     } catch {
       // silently ignore
@@ -282,11 +246,8 @@ export function PublishTaskStatusDrawers() {
 
     const fetchDetailLogs = async () => {
       try {
-        const response = await fetch(
-          `${API_BASE}/api/publish-tasks/${selectedTaskMeta.task.backendTaskId}`
-        )
-        const payload = await response.json()
-        if (!response.ok || !payload?.success) return
+        const payload = await apiFetch<{ success: boolean; task?: { logs?: string[] } }>(`/api/publish-tasks/${selectedTaskMeta.task.backendTaskId}`)
+        if (!payload?.success) return
         const logs = Array.isArray(payload.task?.logs) ? payload.task.logs : []
         if (!disposed) setSelectedTaskFullLogs(logs)
       } catch {
@@ -312,12 +273,8 @@ export function PublishTaskStatusDrawers() {
     try {
       setIsDeletingTask(true)
       setDeleteError(null)
-      const response = await fetch(
-        `${API_BASE}/api/publish-tasks/${selectedTaskMeta.task.backendTaskId}`,
-        { method: "DELETE" }
-      )
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      const payload = await apiDelete<{ success: boolean; message?: string }>(`/api/publish-tasks/${selectedTaskMeta.task.backendTaskId}`)
+      if (!payload?.success) {
         throw new Error(payload?.message || "删除任务失败")
       }
       setSelectedTaskId(null)

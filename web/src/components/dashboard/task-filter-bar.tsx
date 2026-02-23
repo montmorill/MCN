@@ -25,7 +25,7 @@ const filters: FilterOption[] = [
   { id: "recurring", label: "常驻任务", icon: RefreshCw },
 ]
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
+import { apiPost } from "@/lib/api"
 
 type CreateTaskPayload = {
   taskType: "collect"
@@ -51,23 +51,16 @@ export function TaskFilterBar() {
       if (payload.authorPlatform !== "bilibili") {
         throw new Error("当前仅支持 B站 指定作者采集")
       }
-      const response = await fetch(`${API_BASE}/api/tasks/collect/author`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          platform: payload.authorPlatform,
-          collect_action: payload.authorCollectAction,
-          uids: payload.authorUids,
-          title: payload.title,
-          description: payload.description,
-        }),
+      const result = await apiPost<{ success: boolean; message?: string }>("/api/tasks/collect/author", {
+        platform: payload.authorPlatform,
+        collect_action: payload.authorCollectAction,
+        uids: payload.authorUids,
+        title: payload.title,
+        description: payload.description,
       })
 
-      const result = await response.json()
-      if (!response.ok || !result?.success) {
-        throw new Error(result?.message || `指定作者采集请求失败: ${response.status}`)
+      if (!result?.success) {
+        throw new Error(result?.message || "指定作者采集请求失败")
       }
       window.dispatchEvent(new Event("tasks:refresh"))
       return
@@ -77,21 +70,14 @@ export function TaskFilterBar() {
       return
     }
 
-    const response = await fetch(`${API_BASE}/api/tasks/collect/single-work`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        links: payload.workLinks,
-        title: payload.title,
-        description: payload.description,
-      }),
+    const result = await apiPost<{ success: boolean; message?: string }>("/api/tasks/collect/single-work", {
+      links: payload.workLinks,
+      title: payload.title,
+      description: payload.description,
     })
 
-    const result = await response.json()
-    if (!response.ok || !result?.success) {
-      throw new Error(result?.message || `采集请求失败: ${response.status}`)
+    if (!result?.success) {
+      throw new Error(result?.message || "采集请求失败")
     }
     window.dispatchEvent(new Event("tasks:refresh"))
   }

@@ -16,8 +16,6 @@ import time
 import traceback
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
-
 import re
 import sys
 
@@ -30,25 +28,20 @@ from proxy_store import (
     list_account_bindings,
     update_proxy_record,
 )
+from twitter_common import (
+    DOMAIN,
+    DEFAULT_USER_AGENT,
+    TWITTER_BEARER_TOKEN,
+    build_proxy_url,
+)
 
 from twikit.x_client_transaction import ClientTransaction
 
 logger = logging.getLogger("twitter_publisher")
 logger.setLevel(logging.DEBUG)
 
-TWITTER_BEARER_TOKEN = (
-    "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D"
-    "1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
-)
-DOMAIN = "x.com"
 CREATE_TWEET_ENDPOINT = f"https://{DOMAIN}/i/api/graphql/SiM_cAu83R0wnrpmKQQSEw/CreateTweet"
 UPLOAD_MEDIA_ENDPOINT = f"https://upload.{DOMAIN}/i/media/upload.json"
-
-DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/131.0.0.0 Safari/537.36"
-)
 
 FEATURES = {
     "creator_subscriptions_tweet_preview_api_enabled": True,
@@ -420,18 +413,7 @@ class TwitterPublisherSession:
                 f"为防止直连封号已拒绝发布。请更换代理。"
             )
 
-        return self._build_proxy_url(proxy)
-
-    @staticmethod
-    def _build_proxy_url(proxy: dict[str, Any]) -> str:
-        protocol = proxy.get("protocol", "http")
-        host = proxy["ip"]
-        port = proxy["port"]
-        username = str(proxy.get("username") or "").strip()
-        password = str(proxy.get("password") or "").strip()
-        if username and password:
-            return f"{protocol}://{quote(username, safe='')}:{quote(password, safe='')}@{host}:{port}"
-        return f"{protocol}://{host}:{port}"
+        return build_proxy_url(proxy)
 
     # ---- HTTP helpers -----------------------------------------------------
 

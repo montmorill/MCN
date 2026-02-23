@@ -1,41 +1,17 @@
 import json
 import re
 import uuid
-from datetime import datetime
-from pathlib import Path
 from typing import Any
 
-BASE_DIR = Path(__file__).resolve().parent
-RUNTIME_DIR = BASE_DIR / "runtime"
-RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+from store_utils import (
+    RUNTIME_DIR,
+    now_iso,
+    read_json_list as _read_list,
+    write_json_list_atomic as _write_list_atomic,
+)
 
 ACCOUNT_STORE_PATH = RUNTIME_DIR / "accounts.json"
 ALLOWED_ACCOUNT_STATUS = {"active", "abnormal", "unverified"}
-
-
-def now_iso() -> str:
-    return datetime.now().isoformat(timespec="seconds")
-
-
-def _read_list(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, list):
-            return [item for item in data if isinstance(item, dict)]
-    except Exception:
-        return []
-    return []
-
-
-def _write_list_atomic(path: Path, payload: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_suffix(path.suffix + ".tmp")
-    with open(temp_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-    temp_path.replace(path)
 
 
 def _clean_text(value: Any) -> str | None:

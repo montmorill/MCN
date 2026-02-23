@@ -1,18 +1,14 @@
 import json
 import uuid
-from datetime import datetime
-from pathlib import Path
 from typing import Any
 
-BASE_DIR = Path(__file__).resolve().parent
-RUNTIME_DIR = BASE_DIR / "runtime"
-RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+from store_utils import (
+    RUNTIME_DIR,
+    now_iso as _now_iso,
+    write_json_atomic,
+)
 
 MONITORING_STORE_PATH = RUNTIME_DIR / "monitoring.json"
-
-
-def _now_iso() -> str:
-    return datetime.now().isoformat(timespec="seconds")
 
 
 def _empty_store() -> dict[str, Any]:
@@ -47,11 +43,7 @@ def _read_store() -> dict[str, Any]:
 
 
 def _write_store(data: dict[str, Any]) -> None:
-    MONITORING_STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    temp = MONITORING_STORE_PATH.with_suffix(".json.tmp")
-    with open(temp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    temp.replace(MONITORING_STORE_PATH)
+    write_json_atomic(MONITORING_STORE_PATH, data)
 
 
 def list_monitored_accounts() -> list[dict[str, Any]]:

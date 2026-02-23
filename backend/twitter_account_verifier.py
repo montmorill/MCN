@@ -5,20 +5,13 @@ from typing import Any
 
 import httpx
 
-DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/131.0.0.0 Safari/537.36"
+from twitter_common import (
+    DEFAULT_USER_AGENT,
+    TWITTER_BEARER_TOKEN,
+    USER_BY_SCREEN_NAME_QUERY_IDS,
+    USER_BY_SCREEN_NAME_SUFFIX as USER_BY_SCREEN_NAME_ENDPOINT_SUFFIX,
+    build_api_headers,
 )
-
-TWITTER_BEARER_TOKEN = (
-    "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D"
-    "1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
-)
-USER_BY_SCREEN_NAME_QUERY_IDS = [
-    "AWbeRIdkLtqTRN7yL_H8yw",
-]
-USER_BY_SCREEN_NAME_ENDPOINT_SUFFIX = "UserByScreenName"
 
 USER_BY_SCREEN_NAME_FEATURES = {
     "hidden_profile_subscriptions_enabled": True,
@@ -210,13 +203,9 @@ class TwitterAccountVerifierSession:
         return self.ct0
 
     def _build_headers(self, ct0: str) -> dict[str, str]:
-        return {
-            "authorization": f"Bearer {TWITTER_BEARER_TOKEN}",
-            "x-csrf-token": ct0,
-            "user-agent": DEFAULT_USER_AGENT,
-            "x-twitter-active-user": "yes",
-            "x-twitter-client-language": "en",
-        }
+        headers = build_api_headers(ct0)
+        headers["user-agent"] = DEFAULT_USER_AGENT
+        return headers
 
     def _request_user_lookup(
         self,

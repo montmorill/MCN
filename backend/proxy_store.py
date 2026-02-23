@@ -1,19 +1,16 @@
 import json
 import uuid
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-try:
-    import fcntl
-except ModuleNotFoundError:
-    fcntl = None
-
-
-BASE_DIR = Path(__file__).resolve().parent
-RUNTIME_DIR = BASE_DIR / "runtime"
-RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+from store_utils import (
+    RUNTIME_DIR,
+    now_iso,
+    read_json_list as _read_list,
+    write_json_list_atomic as _write_list_atomic,
+    read_and_write_locked as _read_and_write_locked,
+)
 
 PROXY_STORE_PATH = RUNTIME_DIR / "proxy_ips.json"
 BINDING_STORE_PATH = RUNTIME_DIR / "account_proxy_bindings.json"
@@ -21,65 +18,6 @@ BINDING_STORE_PATH = RUNTIME_DIR / "account_proxy_bindings.json"
 ALLOWED_PROTOCOLS = {"http", "https", "socks5"}
 ALLOWED_PROXY_TYPES = {"publish", "monitor"}
 ALLOWED_PROXY_STATUS = {"active", "dead", "slow", "disabled"}
-
-
-def now_iso() -> str:
-    return datetime.now().isoformat(timespec="seconds")
-
-
-def _read_list(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, list):
-            return [item for item in data if isinstance(item, dict)]
-    except Exception:
-        return []
-    return []
-
-
-def _write_list_atomic(path: Path, payload: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    # 用唯一临时文件名避免并发写冲突
-    temp_path = path.with_suffix(f".{uuid.uuid4().hex[:8]}.tmp")
-    try:
-        with open(temp_path, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-        temp_path.replace(path)
-    except Exception:
-        # 清理残留临时文件
-        try:
-            temp_path.unlink(missing_ok=True)
-        except Exception:
-            pass
-        raise
-
-
-def _read_and_write_locked(
-    path: Path,
-    mutator: Any,
-) -> Any:
-    """带文件锁的读-改-写，防止并发写入冲突。"""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = path.with_suffix(path.suffix + ".lock")
-    with open(lock_path, "w") as lock_file:
-        if fcntl:
-            fcntl.flock(lock_file, fcntl.LOCK_EX)
-        try:
-            records = _read_list(path)
-            result = mutator(records)
-            if isinstance(result, tuple) and len(result) == 2:
-                new_records, return_value = result
-            else:
-                new_records = records
-                return_value = result
-            _write_list_atomic(path, new_records)
-            return return_value
-        finally:
-            if fcntl:
-                fcntl.flock(lock_file, fcntl.LOCK_UN)
 
 
 def _normalize_protocol(value: str | None) -> str:

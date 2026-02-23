@@ -11,18 +11,19 @@ import json
 import time
 import traceback
 from typing import Any
-from urllib.parse import quote
 
 import requests
 
-# ---------- 从 twitter_account_verifier.py 复用的常量 ----------
 from twitter_account_verifier import (
-    DEFAULT_USER_AGENT,
-    TWITTER_BEARER_TOKEN,
     USER_BY_SCREEN_NAME_ENDPOINT_SUFFIX,
     USER_BY_SCREEN_NAME_FEATURES,
-    USER_BY_SCREEN_NAME_QUERY_IDS,
     normalize_screen_name,
+)
+from twitter_common import (
+    DEFAULT_USER_AGENT,
+    TWITTER_BEARER_TOKEN,
+    USER_BY_SCREEN_NAME_QUERY_IDS,
+    build_proxy_url,
 )
 
 LOG_PREFIX = "[binding_verifier]"
@@ -43,24 +44,6 @@ IP_CHECK_SERVICES = [
 
 def _log(msg: str) -> None:
     print(f"{LOG_PREFIX} {msg}", flush=True)
-
-
-def _build_proxy_url(proxy: dict[str, Any]) -> str:
-    """拼代理 URL，对用户名密码做 URL 编码。"""
-    protocol = proxy.get("protocol", "http")
-    ip = proxy.get("ip", "")
-    port = proxy.get("port", "")
-    username = str(proxy.get("username") or "").strip()
-    password = str(proxy.get("password") or "").strip()
-
-    if username and password:
-        auth = f"{quote(username, safe='')}:{quote(password, safe='')}@"
-    else:
-        auth = ""
-
-    url = f"{protocol}://{auth}{ip}:{port}"
-    _log(f"构建代理URL: {protocol}://{ip}:{port} (有认证={bool(username and password)})")
-    return url
 
 
 def _build_requests_proxies(proxy_url: str) -> dict[str, str]:
@@ -362,7 +345,7 @@ def verify_binding(
         }
 
     # --- 构建代理 URL ---
-    proxy_url = _build_proxy_url(proxy)
+    proxy_url = build_proxy_url(proxy)
 
     # --- 辅助：获取代理出口 IP（仅展示，不影响判定）---
     ip_info = _get_exit_ip_via_proxy(proxy_url)

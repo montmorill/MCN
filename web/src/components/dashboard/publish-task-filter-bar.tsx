@@ -9,9 +9,8 @@ import {
   Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { apiPost } from "@/lib/api"
 import { CreatePublishTaskDialog } from "@/components/create-publish-task-dialog"
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
 
 interface FilterOption {
   id: string
@@ -44,25 +43,19 @@ export function PublishTaskFilterBar() {
   const [createOpen, setCreateOpen] = useState(false)
 
   const handleCreateTask = async (payload: CreatePayload) => {
-    const response = await fetch(`${API_BASE}/api/publish-tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        account_id: payload.accountId,
-        publish_mode: payload.publishMode,
-        text: payload.text,
-        media_paths: payload.mediaPaths.length > 0 ? payload.mediaPaths : null,
-        is_sensitive: payload.isSensitive,
-        strategy_type: payload.strategyType,
-        scheduled_time: payload.scheduledTime,
-        title: payload.title,
-        description: payload.description,
-      }),
+    const result = await apiPost<{ success: boolean; message?: string }>("/api/publish-tasks", {
+      account_id: payload.accountId,
+      publish_mode: payload.publishMode,
+      text: payload.text,
+      media_paths: payload.mediaPaths.length > 0 ? payload.mediaPaths : null,
+      is_sensitive: payload.isSensitive,
+      strategy_type: payload.strategyType,
+      scheduled_time: payload.scheduledTime,
+      title: payload.title,
+      description: payload.description,
     })
-
-    const result = await response.json()
-    if (!response.ok || !result?.success) {
-      throw new Error(result?.message || `创建发布任务失败: ${response.status}`)
+    if (!result?.success) {
+      throw new Error(result?.message || "创建发布任务失败")
     }
     window.dispatchEvent(new Event("publish-tasks:refresh"))
   }

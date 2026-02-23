@@ -1,42 +1,23 @@
 import json
 import uuid
-from datetime import datetime
-from pathlib import Path
 from typing import Any
 
-BASE_DIR = Path(__file__).resolve().parent
-TASK_STORE_DIR = BASE_DIR / "runtime" / "tasks"
+from store_utils import (
+    RUNTIME_DIR,
+    now_iso,
+    write_json_atomic as _write_json_atomic,
+    normalize_progress as _normalize_progress,
+)
+
+TASK_STORE_DIR = RUNTIME_DIR / "tasks"
 TASK_STORE_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_LOG_LINES = 500
 
 
-def now_iso() -> str:
-    return datetime.now().isoformat(timespec="seconds")
-
-
-def _task_path(task_id: str) -> Path:
+def _task_path(task_id: str):
     safe_task_id = str(task_id).strip()
     return TASK_STORE_DIR / f"{safe_task_id}.json"
-
-
-def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_suffix(path.suffix + ".tmp")
-    with open(temp_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-    temp_path.replace(path)
-
-
-def _normalize_progress(current: int, total: int) -> dict[str, int]:
-    safe_total = max(int(total), 1)
-    safe_current = min(max(int(current), 0), safe_total)
-    percent = int(round((safe_current / safe_total) * 100))
-    return {
-        "current": safe_current,
-        "total": safe_total,
-        "percent": min(max(percent, 0), 100),
-    }
 
 
 def create_task_record(

@@ -32,53 +32,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { apiFetch, apiPost, apiDelete } from "@/lib/api"
+import type { ProxyPoolType, ProxyProtocol, ProxyCheckResult, ProxyRecord } from "@/types"
 
-type ProxyPoolType = "publish" | "monitor"
-type ProxyProtocol = "http" | "https" | "socks5"
-type ProxyStatus = "active" | "dead" | "slow" | "disabled"
 type MonitorProxyDrawerId = "normal" | "abnormal" | "pending"
 type ProxyDrawerId = MonitorProxyDrawerId
-
-type ProxyServiceUnlock = {
-  name?: string
-  ok?: boolean
-  latency_seconds?: number | null
-}
-
-type ProxyCheckResult = {
-  success?: boolean
-  status?: string
-  message?: string
-  task_id?: string
-  real_ip?: string | null
-  latency_ms?: number | null
-  score?: number | null
-  proxy_type?: string | null
-  country?: string | null
-  region?: string | null
-  city?: string | null
-  services?: ProxyServiceUnlock[]
-  is_dead?: boolean
-  error?: string | null
-}
-
-type ProxyRecord = {
-  id: string
-  ip: string
-  port: number
-  protocol: ProxyProtocol
-  username?: string | null
-  password_masked?: string | null
-  region?: string | null
-  type: ProxyPoolType
-  status: ProxyStatus
-  last_checked_at?: string | null
-  last_latency_ms?: number | null
-  last_error?: string | null
-  last_check_result?: ProxyCheckResult | null
-  created_at?: string
-  updated_at?: string
-}
 
 type SingleFormState = {
   ip: string
@@ -96,8 +54,6 @@ type ProxyDrawer = {
   emptyTitle: string
   emptyDescription: string
 }
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
 
 const protocolOptions: { id: ProxyProtocol; label: string }[] = [
   { id: "http", label: "HTTP" },
@@ -278,9 +234,8 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
     setLoading(true)
     setErrorMessage(null)
     try {
-      const response = await fetch(`${API_BASE}/api/proxies?type=${poolType}`)
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      const payload = await apiFetch<{ success: boolean; message?: string; proxies?: ProxyRecord[] }>(`/api/proxies?type=${poolType}`)
+      if (!payload?.success) {
         throw new Error(payload?.message || "代理列表加载失败")
       }
       setProxyItems(Array.isArray(payload?.proxies) ? payload.proxies : [])
@@ -359,21 +314,16 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
     try {
       setIsSubmittingSingle(true)
       setErrorMessage(null)
-      const response = await fetch(`${API_BASE}/api/proxies`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ip,
-          port: portValue,
-          username: singleForm.username.trim() || null,
-          password: singleForm.password.trim() || null,
-          protocol: singleForm.protocol,
-          region: singleForm.region.trim() || null,
-          type: poolType,
-        }),
+      const payload = await apiPost<{ success: boolean; message?: string }>("/api/proxies", {
+        ip,
+        port: portValue,
+        username: singleForm.username.trim() || null,
+        password: singleForm.password.trim() || null,
+        protocol: singleForm.protocol,
+        region: singleForm.region.trim() || null,
+        type: poolType,
       })
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      if (!payload?.success) {
         throw new Error(payload?.message || "添加代理失败")
       }
       setSingleOpen(false)
@@ -400,20 +350,12 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
       setIsSubmittingBatch(true)
       setErrorMessage(null)
       setBatchResult(null)
-      const response = await fetch(`${API_BASE}/api/proxies/batch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items,
-          protocol: batchProtocol,
-          region: batchRegion.trim() || null,
-          type: poolType,
-        }),
+      const payload = await apiPost<{ success_count?: number; failure_count?: number; message?: string; failures?: { raw?: string; reason?: string }[] }>("/api/proxies/batch", {
+        items,
+        protocol: batchProtocol,
+        region: batchRegion.trim() || null,
+        type: poolType,
       })
-      const payload = await response.json()
-      if (!response.ok) {
-        throw new Error(payload?.message || "批量添加请求失败")
-      }
 
       const successCount = Number(payload?.success_count ?? 0)
       const failureCount = Number(payload?.failure_count ?? 0)
@@ -449,11 +391,8 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
     try {
       setIsDeletingProxyId(proxyId)
       setErrorMessage(null)
-      const response = await fetch(`${API_BASE}/api/proxies/${proxyId}`, {
-        method: "DELETE",
-      })
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      const payload = await apiDelete<{ success: boolean; message?: string }>(`/api/proxies/${proxyId}`)
+      if (!payload?.success) {
         throw new Error(payload?.message || "删除代理失败")
       }
       if (selectedProxyId === proxyId) {
@@ -472,17 +411,9 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
       setIsTestingProxyId(proxyId)
       setErrorMessage(null)
       setStatusMessage(null)
-      const response = await fetch(`${API_BASE}/api/proxies/${proxyId}/test`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      })
-      const payload = await response.json()
+      const payload = await apiPost<{ success: boolean; message?: string }>(`/api/proxies/${proxyId}/test`, {})
       if (!payload?.success) {
         setErrorMessage(payload?.message || "代理测试失败")
-      }
-      if (!response.ok && !payload?.success) {
-        throw new Error(payload?.message || "代理测试失败")
       }
       await loadProxies()
     } catch (error) {
@@ -506,12 +437,7 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
       const results = await Promise.all(
         selectedProxyIds.map(async (proxyId) => {
           try {
-            const response = await fetch(`${API_BASE}/api/proxies/${proxyId}/test`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({}),
-            })
-            const payload = await response.json()
+            const payload = await apiPost<{ success: boolean; message?: string }>(`/api/proxies/${proxyId}/test`, {})
             return {
               proxyId,
               success: Boolean(payload?.success),
@@ -566,11 +492,8 @@ export function ProxyPoolMainContent({ poolType }: { poolType: ProxyPoolType }) 
       let failureCount = 0
       for (const proxyId of selectedProxyIds) {
         try {
-          const response = await fetch(`${API_BASE}/api/proxies/${proxyId}`, {
-            method: "DELETE",
-          })
-          const payload = await response.json()
-          if (response.ok && payload?.success) {
+          const payload = await apiDelete<{ success: boolean; message?: string }>(`/api/proxies/${proxyId}`)
+          if (payload?.success) {
             successCount++
           } else {
             failureCount++

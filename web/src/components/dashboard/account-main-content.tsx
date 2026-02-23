@@ -35,28 +35,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-
-type AccountStatus = "active" | "abnormal" | "unverified"
-
-type AccountItem = {
-  id: string
-  platform: string
-  account: string
-  email?: string | null
-  status: AccountStatus
-  verify_status?: string | null
-  verify_message?: string | null
-  verify_checked_at?: string | null
-  verify_http_status?: number | null
-  verify_latency_ms?: number | null
-  password_masked?: string | null
-  twofa_masked?: string | null
-  token_masked?: string | null
-  email_password_masked?: string | null
-  extra_fields?: Record<string, string>
-  created_at?: string
-  updated_at?: string
-}
+import { apiFetch, apiPost, apiDelete } from "@/lib/api"
+import type { AccountStatus, AccountItem, BindingItem } from "@/types"
 
 type SingleAccountForm = {
   account: string
@@ -77,13 +57,6 @@ type ProxyItem = {
   type: string
   status: string
   username?: string | null
-}
-
-type BindingItem = {
-  account_uid: string
-  proxy_id: string
-  proxy_label?: string | null
-  proxy_status?: string | null
 }
 
 type BindingVerifyResult = {
@@ -107,8 +80,6 @@ type AccountDrawer = {
   emptyTitle: string
   emptyDescription: string
 }
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
 
 const accountDrawers: AccountDrawer[] = [
   {
@@ -226,9 +197,8 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
     try {
       const params = new URLSearchParams({ platform: "twitter" })
       if (pool) params.set("pool", pool)
-      const response = await fetch(`${API_BASE}/api/accounts?${params}`)
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      const payload = await apiFetch<{ success: boolean; message?: string; accounts?: AccountItem[] }>(`/api/accounts?${params}`)
+      if (!payload?.success) {
         throw new Error(payload?.message || "账号列表加载失败")
       }
       setAccountItems(Array.isArray(payload?.accounts) ? payload.accounts : [])
@@ -250,12 +220,10 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
 
   const loadProxiesAndBindings = useCallback(async () => {
     try {
-      const [proxyRes, bindingRes] = await Promise.all([
-        fetch(`${API_BASE}/api/proxies?type=${proxyType}`),
-        fetch(`${API_BASE}/api/bindings`),
+      const [proxyPayload, bindingPayload] = await Promise.all([
+        apiFetch<{ success: boolean; proxies?: ProxyItem[] }>(`/api/proxies?type=${proxyType}`),
+        apiFetch<{ success: boolean; bindings?: BindingItem[] }>(`/api/bindings`),
       ])
-      const proxyPayload = await proxyRes.json()
-      const bindingPayload = await bindingRes.json()
 
       if (proxyPayload?.success) {
         const proxies: ProxyItem[] = (proxyPayload.proxies ?? []).filter(
@@ -294,12 +262,7 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
     try {
       setIsBinding(true)
       setErrorMessage(null)
-      const response = await fetch(`${API_BASE}/api/bindings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_id: selectedAccountId, proxy_id: selectedProxyId }),
-      })
-      const payload = await response.json()
+      const payload = await apiPost<{ success: boolean; message?: string }>("/api/bindings", { account_id: selectedAccountId, proxy_id: selectedProxyId })
       if (!payload?.success) throw new Error(payload?.message || "绑定失败")
       setStatusMessage(payload.message)
       await loadProxiesAndBindings()
@@ -315,10 +278,7 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
     try {
       setIsUnbinding(true)
       setErrorMessage(null)
-      const response = await fetch(`${API_BASE}/api/bindings/${selectedAccountId}`, {
-        method: "DELETE",
-      })
-      const payload = await response.json()
+      const payload = await apiDelete<{ success: boolean; message?: string }>(`/api/bindings/${selectedAccountId}`)
       if (!payload?.success) throw new Error(payload?.message || "解绑失败")
       setStatusMessage(payload.message)
       setSelectedProxyId(null)
@@ -336,11 +296,7 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
     try {
       setIsVerifyingBinding(true)
       setBindingVerifyResult(null)
-      const response = await fetch(
-        `${API_BASE}/api/bindings/verify-by-account/${selectedAccountId}`,
-        { method: "POST" }
-      )
-      const payload = await response.json()
+      const payload = await apiPost<{ success: boolean; message?: string; verification?: BindingVerifyResult }>(`/api/bindings/verify-by-account/${selectedAccountId}`, {})
       if (!payload?.success) throw new Error(payload?.message || "验证失败")
       setBindingVerifyResult(payload.verification)
     } catch (error) {
@@ -361,12 +317,7 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
       setIsBatchBinding(true)
       setErrorMessage(null)
       setStatusMessage(null)
-      const response = await fetch(`${API_BASE}/api/bindings/batch-auto-bind`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_ids: selectedAccountIds, proxy_type: proxyType }),
-      })
-      const payload = await response.json()
+      const payload = await apiPost<{ success: boolean; message?: string; bound_count?: number; results?: Record<string, unknown>[] }>("/api/bindings/batch-auto-bind", { account_ids: selectedAccountIds, proxy_type: proxyType })
       if (!payload?.success && payload?.bound_count === 0) {
         throw new Error(payload?.message || "批量绑定失败")
       }
@@ -400,13 +351,8 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
       setIsBatchVerifyingBinding(true)
       setErrorMessage(null)
       setStatusMessage(null)
-      const response = await fetch(`${API_BASE}/api/bindings/batch-verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_ids: selectedAccountIds }),
-      })
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      const payload = await apiPost<{ success: boolean; message?: string; results?: Record<string, unknown>[] }>("/api/bindings/batch-verify", { account_ids: selectedAccountIds })
+      if (!payload?.success) {
         throw new Error(payload?.message || "批量验证失败")
       }
       setStatusMessage(payload.message)
@@ -480,23 +426,18 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
     try {
       setIsSubmittingSingle(true)
       setErrorMessage(null)
-      const response = await fetch(`${API_BASE}/api/accounts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          platform: "twitter",
-          account: singleForm.account.trim(),
-          password: singleForm.password.trim() || null,
-          twofa: singleForm.twofa.trim() || null,
-          token: singleForm.token.trim() || null,
-          email: singleForm.email.trim() || null,
-          email_password: singleForm.emailPassword.trim() || null,
-          status: "active",
-          pool: pool || null,
-        }),
+      const payload = await apiPost<{ success: boolean; message?: string }>("/api/accounts", {
+        platform: "twitter",
+        account: singleForm.account.trim(),
+        password: singleForm.password.trim() || null,
+        twofa: singleForm.twofa.trim() || null,
+        token: singleForm.token.trim() || null,
+        email: singleForm.email.trim() || null,
+        email_password: singleForm.emailPassword.trim() || null,
+        status: "active",
+        pool: pool || null,
       })
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      if (!payload?.success) {
         throw new Error(payload?.message || "添加账号失败")
       }
       setSingleOpen(false)
@@ -532,22 +473,14 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
       setIsSubmittingBatch(true)
       setErrorMessage(null)
       setBatchResult(null)
-      const response = await fetch(`${API_BASE}/api/accounts/batch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          platform: "twitter",
-          raw_text: batchRawText,
-          delimiter,
-          field_order: fieldOrder,
-          status: "active",
-          pool: pool || null,
-        }),
+      const payload = await apiPost<{ success?: boolean; message?: string; success_count?: number; failure_count?: number; failures?: { line_number?: number; reason?: string }[] }>("/api/accounts/batch", {
+        platform: "twitter",
+        raw_text: batchRawText,
+        delimiter,
+        field_order: fieldOrder,
+        status: "active",
+        pool: pool || null,
       })
-      const payload = await response.json()
-      if (!response.ok) {
-        throw new Error(payload?.message || "批量导入请求失败")
-      }
 
       const successCount = Number(payload?.success_count ?? 0)
       const failureCount = Number(payload?.failure_count ?? 0)
@@ -585,11 +518,8 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
     try {
       setIsDeletingAccountId(accountId)
       setErrorMessage(null)
-      const response = await fetch(`${API_BASE}/api/accounts/${accountId}`, {
-        method: "DELETE",
-      })
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      const payload = await apiDelete<{ success: boolean; message?: string }>(`/api/accounts/${accountId}`)
+      if (!payload?.success) {
         throw new Error(payload?.message || "删除账号失败")
       }
 
@@ -619,11 +549,8 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
       const failures: string[] = []
       for (const accountId of selectedAccountIds) {
         try {
-          const response = await fetch(`${API_BASE}/api/accounts/${accountId}`, {
-            method: "DELETE",
-          })
-          const payload = await response.json()
-          if (!response.ok || !payload?.success) {
+          const payload = await apiDelete<{ success: boolean; message?: string }>(`/api/accounts/${accountId}`)
+          if (!payload?.success) {
             throw new Error(payload?.message || "删除账号失败")
           }
         } catch (error) {
@@ -652,16 +579,11 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
       setIsVerifyingStatus(true)
       setErrorMessage(null)
       setStatusMessage(null)
-      const response = await fetch(`${API_BASE}/api/accounts/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          account_ids: selectedAccountIds,
-        }),
+      const payload = await apiPost<{ success: boolean; message?: string; success_count?: number; failure_count?: number; missing_ids?: string[]; results?: Record<string, unknown>[]; failure_details?: Record<string, unknown>[] }>("/api/accounts/verify", {
+        account_ids: selectedAccountIds,
       })
-      const payload = await response.json()
       console.groupCollapsed(
-        `[账号验证] response status=${response.status} success=${Boolean(payload?.success)}`
+        `[账号验证] success=${Boolean(payload?.success)}`
       )
       console.log("payload:", payload)
       const resultItems = Array.isArray(payload?.results) ? payload.results : []
@@ -687,7 +609,7 @@ export function AccountMainContent({ pool }: AccountMainContentProps = {}) {
         console.error("[账号验证] failure_details:", failureDetails)
       }
       console.groupEnd()
-      if (!response.ok || !payload?.success) {
+      if (!payload?.success) {
         throw new Error(payload?.message || "账号状态验证失败")
       }
 

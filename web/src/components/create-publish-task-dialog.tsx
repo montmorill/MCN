@@ -18,8 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { MaterialPickerDialog } from "./dashboard/material-picker-dialog"
 import { cn } from "@/lib/utils"
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
+import { apiFetch, apiPost, apiPostForm, API_BASE } from "@/lib/api"
 
 type PublishMode = "single-tweet" | null
 
@@ -76,8 +75,7 @@ export function CreatePublishTaskDialog({
 
   useEffect(() => {
     if (!open) return
-    fetch(`${API_BASE}/api/accounts?platform=twitter&pool=publish`)
-      .then((r) => r.json())
+    apiFetch<{ success: boolean; accounts?: AccountRecord[] }>("/api/accounts?platform=twitter&pool=publish")
       .then((data) => {
         if (data?.success && Array.isArray(data.accounts)) {
           setAccounts(
@@ -172,11 +170,7 @@ export function CreatePublishTaskDialog({
       try {
         const formData = new FormData()
         formData.append("file", file)
-        const res = await fetch(`${API_BASE}/api/media/upload`, {
-          method: "POST",
-          body: formData,
-        })
-        const data = await res.json()
+        const data = await apiPostForm<{ success: boolean; local_path?: string }>("/api/media/upload", formData)
         if (data?.success) {
           setMediaFiles((prev) =>
             prev.map((m) =>
@@ -230,12 +224,7 @@ export function CreatePublishTaskDialog({
       setMediaFiles((prev) => [...prev, entry])
 
       try {
-        const res = await fetch(`${API_BASE}/api/materials/resolve-path`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ relative_path: f.relativePath }),
-        })
-        const data = await res.json()
+        const data = await apiPost<{ success: boolean; local_path?: string }>("/api/materials/resolve-path", { relative_path: f.relativePath })
         if (data?.success) {
           setMediaFiles((prev) =>
             prev.map((m) =>

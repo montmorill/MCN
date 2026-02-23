@@ -38,60 +38,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
-
-type SnapshotData = {
-  followers_count?: number
-  following_count?: number
-  tweet_count?: number
-  listed_count?: number
-  profile_name?: string
-  profile_image_url?: string
-  bio?: string
-  created_at?: string
-  captured_at?: string
-}
-
-type RegularScope =
-  | { type: "count"; count: number }
-  | { type: "days"; days: number }
-
-type HighlightsScope =
-  | { type: "count"; count: number }
-  | { type: "days"; days: number }
-
-type CollectScope =
-  | { mode: "full" }
-  | { mode: "custom"; regular: RegularScope; highlights?: HighlightsScope | null }
-
-type MonitoredAccount = {
-  id: string
-  username: string
-  note?: string | null
-  refresh_interval_hours?: number
-  collect_scope?: CollectScope
-  added_at: string
-  last_scraped_at?: string | null
-  latest_snapshot: SnapshotData | null
-}
-
-type FollowerHistoryPoint = { date: string; followers: number }
-
-type TweetMetric = {
-  tweet_id: string
-  text: string
-  created_at: string
-  views: number
-  likes: number
-  retweets: number
-  replies: number
-  quotes: number
-  bookmarks: number
-  media_urls?: string[]
-  author_name?: string
-  author_handle?: string
-}
+import { apiFetch, apiPost, apiPatch } from "@/lib/api"
+import type {
+  RegularScope,
+  HighlightsScope,
+  CollectScope,
+  MonitoredAccount,
+  FollowerHistoryPoint,
+  TweetMetric,
+  DashboardData,
+} from "@/types"
 
 type ScopeState = {
   isFull: boolean
@@ -132,13 +88,6 @@ function scopeStateToCollectScope(s: ScopeState): CollectScope {
       : { type: "days", days: Math.max(1, s.hlDays) }
     : null
   return { mode: "custom", regular, highlights }
-}
-
-type DashboardData = {
-  account: { id: string; username: string }
-  overview: SnapshotData
-  followers_history: FollowerHistoryPoint[]
-  tweets: TweetMetric[]
 }
 
 function formatDateTime(value?: string | null): string {
@@ -381,9 +330,8 @@ export function MonitoringMainContent() {
     setLoading(true)
     setErrorMessage(null)
     try {
-      const res = await fetch(`${API_BASE}/api/monitoring/accounts`)
-      const data = await res.json()
-      if (!res.ok || !data?.success) throw new Error(data?.message || "加载失败")
+      const data = await apiFetch<{ success: boolean; message?: string; accounts?: MonitoredAccount[] }>("/api/monitoring/accounts")
+      if (!data?.success) throw new Error(data?.message || "加载失败")
       setAccounts(data.accounts ?? [])
     } catch (e) {
       setErrorMessage(e instanceof Error ? e.message : "加载失败")
@@ -427,8 +375,7 @@ export function MonitoringMainContent() {
   const loadDashboard = useCallback(async (accountId: string, source: "regular" | "highlights" = "regular") => {
     setDashboardLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/monitoring/accounts/${accountId}/dashboard?source=${source}`)
-      const data = await res.json()
+      const data = await apiFetch<DashboardData & { success: boolean }>(`/api/monitoring/accounts/${accountId}/dashboard?source=${source}`)
       if (data?.success) setDashboard(data)
       else setDashboard(null)
     } catch {
@@ -445,14 +392,9 @@ export function MonitoringMainContent() {
     setIsBatchRemoving(true)
     setErrorMessage(null)
     try {
-      const res = await fetch(`${API_BASE}/api/monitoring/accounts/batch-remove`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_ids: selectedAccountIds }),
-      })
-      const data = await res.json()
+      const data = await apiPost<{ success: boolean; message?: string }>("/api/monitoring/accounts/batch-remove", { account_ids: selectedAccountIds })
       if (!data?.success) throw new Error(data?.message || "操作失败")
-      setStatusMessage(data.message)
+      setStatusMessage(data.message ?? null)
       setSelectedAccountIds([])
       if (selectedAccountId && selectedAccountIds.includes(selectedAccountId)) {
         setSelectedAccountId(null)
@@ -474,13 +416,8 @@ export function MonitoringMainContent() {
     setErrorMessage(null)
     setStatusMessage(null)
     try {
-      const res = await fetch(`${API_BASE}/api/monitoring/scrape-batch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account_ids: selectedAccountIds }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data?.success) throw new Error(data?.message || "刷新失败")
+      const data = await apiPost<{ success: boolean; message?: string; summary?: string }>("/api/monitoring/scrape-batch", { account_ids: selectedAccountIds })
+      if (!data?.success) throw new Error(data?.message || "刷新失败")
       setStatusMessage(data.summary || "刷新完成")
       await loadAccounts()
       if (selectedAccountId) {
@@ -498,11 +435,8 @@ export function MonitoringMainContent() {
     setIsSingleScraping(true)
     setErrorMessage(null)
     try {
-      const res = await fetch(`${API_BASE}/api/monitoring/accounts/${selectedAccountId}/scrape`, {
-        method: "POST",
-      })
-      const data = await res.json()
-      if (!res.ok || !data?.success) throw new Error(data?.error || "刷新失败")
+      const data = await apiPost<{ success: boolean; error?: string }>(`/api/monitoring/accounts/${selectedAccountId}/scrape`, {})
+      if (!data?.success) throw new Error(data?.error || "刷新失败")
       await loadAccounts()
       await loadDashboard(selectedAccountId, tweetViewTab)
     } catch (e) {
@@ -564,19 +498,14 @@ export function MonitoringMainContent() {
     setIsSubmittingAdd(true)
     setErrorMessage(null)
     try {
-      const res = await fetch(`${API_BASE}/api/monitoring/accounts/batch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accounts: items,
-          refresh_interval_hours: addInterval,
-        }),
+      const data = await apiPost<{ success: boolean; message?: string }>("/api/monitoring/accounts/batch", {
+        accounts: items,
+        refresh_interval_hours: addInterval,
       })
-      const data = await res.json()
       if (!data?.success) throw new Error(data?.message || "添加失败")
       setAddOpen(false)
       setAddEntries([makeDefaultEntry()])
-      setStatusMessage(data.message)
+      setStatusMessage(data.message ?? null)
       await loadAccounts()
     } catch (e) {
       setErrorMessage(e instanceof Error ? e.message : "添加失败")
@@ -633,15 +562,10 @@ export function MonitoringMainContent() {
             : null,
         }
     try {
-      const res = await fetch(`${API_BASE}/api/monitoring/accounts/${selectedAccount.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          collect_scope: scope,
-          refresh_interval_hours: editInterval,
-        }),
+      const data = await apiPatch<{ success: boolean; message?: string }>(`/api/monitoring/accounts/${selectedAccount.id}`, {
+        collect_scope: scope,
+        refresh_interval_hours: editInterval,
       })
-      const data = await res.json()
       if (!data?.success) throw new Error(data?.message || "保存失败")
       setEditOpen(false)
       setStatusMessage("设置已更新")

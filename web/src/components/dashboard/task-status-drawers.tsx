@@ -13,8 +13,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
+import { apiFetch, apiDelete } from "@/lib/api"
+import type { CollectTaskStatus, CollectTask } from "@/types"
 
 type StatusDrawer = {
   id: string
@@ -22,37 +22,6 @@ type StatusDrawer = {
   icon: ComponentType
   emptyTitle: string
   emptyDescription: string
-}
-
-type BackendTaskStatus = "pending" | "running" | "completed" | "failed"
-
-type BackendTask = {
-  id: string
-  kind:
-    | "collect-single-work"
-    | "collect-author"
-    | "collect-author-selective-download"
-  task_type: "collect" | "publish"
-  collect_mode: "single-work" | "author"
-  title: string
-  description: string
-  status: BackendTaskStatus
-  created_at: string
-  updated_at: string
-  started_at?: string | null
-  ended_at?: string | null
-  logs?: string[]
-  error?: string | null
-  result_summary?: {
-    total_count?: number
-    success_count?: number
-    failure_count?: number
-  }
-  progress?: {
-    current?: number
-    total?: number
-    percent?: number
-  }
 }
 
 type TaskListItem = {
@@ -63,14 +32,14 @@ type TaskListItem = {
   createdAt: string
   taskType: "采集任务" | "发布任务"
   collectMode: "指定作品采集" | "指定作者采集" | "不适用"
-  status: BackendTaskStatus
+  status: CollectTaskStatus
   progressPercent: number
   progressText: string
   logs: string[]
   error: string | null
 }
 
-const statusTextMap: Record<BackendTaskStatus, string> = {
+const statusTextMap: Record<CollectTaskStatus, string> = {
   pending: "排队中",
   running: "执行中",
   completed: "已完成",
@@ -148,7 +117,7 @@ function formatDateLabel(value: string | undefined): string {
   return value.slice(0, 10)
 }
 
-function normalizeProgress(task: BackendTask): { percent: number; text: string } {
+function normalizeProgress(task: CollectTask): { percent: number; text: string } {
   const rawCurrent = Number(task.progress?.current ?? 0)
   const rawTotal = Number(task.progress?.total ?? 1)
   const rawPercent = Number(task.progress?.percent ?? 0)
@@ -177,7 +146,7 @@ function mapTaskTypeLabel(taskType: string): TaskListItem["taskType"] {
   return taskType === "publish" ? "发布任务" : "采集任务"
 }
 
-function getProgressColor(status: BackendTaskStatus): string {
+function getProgressColor(status: CollectTaskStatus): string {
   if (status === "completed") return "bg-emerald-400"
   if (status === "failed") return "bg-rose-400"
   if (status === "running") return "bg-sky-400"
@@ -191,7 +160,7 @@ export function TaskStatusDrawers() {
     completed: false,
     failed: false,
   })
-  const [backendTasks, setBackendTasks] = useState<BackendTask[]>([])
+  const [backendTasks, setCollectTasks] = useState<CollectTask[]>([])
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [selectedTaskFullLogs, setSelectedTaskFullLogs] = useState<string[]>([])
   const [isDeletingTask, setIsDeletingTask] = useState(false)
@@ -200,13 +169,12 @@ export function TaskStatusDrawers() {
 
   const fetchTasks = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/tasks?limit=200`)
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      const payload = await apiFetch<{ success: boolean; message?: string; tasks?: CollectTask[] }>("/api/tasks?limit=200")
+      if (!payload?.success) {
         throw new Error(payload?.message || "任务列表请求失败")
       }
       const tasks = Array.isArray(payload?.tasks) ? payload.tasks : []
-      setBackendTasks(tasks as BackendTask[])
+      setCollectTasks(tasks as CollectTask[])
     } catch (error) {
       console.error("任务列表加载失败:", error)
     }
@@ -299,11 +267,8 @@ export function TaskStatusDrawers() {
 
     const fetchTaskDetailLogs = async () => {
       try {
-        const response = await fetch(
-          `${API_BASE}/api/tasks/${selectedTaskMeta.task.backendTaskId}`
-        )
-        const payload = await response.json()
-        if (!response.ok || !payload?.success) {
+        const payload = await apiFetch<{ success: boolean; task?: { logs?: string[] } }>(`/api/tasks/${selectedTaskMeta.task.backendTaskId}`)
+        if (!payload?.success) {
           return
         }
         const logs = Array.isArray(payload?.task?.logs) ? payload.task.logs : []
@@ -336,14 +301,8 @@ export function TaskStatusDrawers() {
     try {
       setIsDeletingTask(true)
       setDeleteError(null)
-      const response = await fetch(
-        `${API_BASE}/api/tasks/${selectedTaskMeta.task.backendTaskId}`,
-        {
-          method: "DELETE",
-        }
-      )
-      const payload = await response.json()
-      if (!response.ok || !payload?.success) {
+      const payload = await apiDelete<{ success: boolean; message?: string }>(`/api/tasks/${selectedTaskMeta.task.backendTaskId}`)
+      if (!payload?.success) {
         throw new Error(payload?.message || "删除任务失败")
       }
       setSelectedTaskId(null)

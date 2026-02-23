@@ -13,6 +13,7 @@ import {
   Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { apiFetch, apiPost, apiPostForm, API_BASE } from "@/lib/api"
 
 type FolderNode = {
   id: string
@@ -24,8 +25,6 @@ type FolderNode = {
 }
 
 type RootFolder = FolderNode
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"
 const USER_UPLOAD_ROOT_ID = "user-upload"
 const USER_UPLOAD_ROOT_NAME = "用户上传"
 const SPECIAL_BILIBILI_SUBFOLDER = "已采集未下载作者"
@@ -189,9 +188,7 @@ export function MaterialFolderBrowser({
   const loadMaterialTree = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE}/api/materials/tree`)
-      if (!response.ok) return
-      const data = await response.json()
+      const data = await apiFetch<{ roots?: unknown[] }>("/api/materials/tree")
       if (Array.isArray(data?.roots)) {
         setRootFolders(normalizeRoots(data.roots))
       }
@@ -382,17 +379,10 @@ export function MaterialFolderBrowser({
     try {
       onDeletingChange?.(true)
       setActionError(null)
-      const response = await fetch(`${API_BASE}/api/materials/delete`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          paths: selectedDeletePaths,
-        }),
+      const result = await apiPost<{ success: boolean; message?: string; failures?: { path?: string; reason?: string }[] }>("/api/materials/delete", {
+        paths: selectedDeletePaths,
       })
-      const result = await response.json()
-      if (!response.ok || !result?.success) {
+      if (!result?.success) {
         const failureText = Array.isArray(result?.failures)
           ? result.failures
               .slice(0, 3)
@@ -424,24 +414,11 @@ export function MaterialFolderBrowser({
     try {
       setIsDownloadingSelected(true)
       setActionError(null)
-      const response = await fetch(
-        `${API_BASE}/api/tasks/collect/author/selective-download`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            platform: "bilibili",
-            author_uid: activeAuthorFolder.authorUid ?? activeAuthorFolder.name,
-            selected_video_folders: selectedPendingVideoFolders,
-          }),
-        }
-      )
-      if (!response.ok) {
-        throw new Error(`下载请求失败: ${response.status}`)
-      }
-      const result = await response.json()
+      const result = await apiPost<{ success: boolean; message?: string }>("/api/tasks/collect/author/selective-download", {
+        platform: "bilibili",
+        author_uid: activeAuthorFolder.authorUid ?? activeAuthorFolder.name,
+        selected_video_folders: selectedPendingVideoFolders,
+      })
       if (!result?.success) {
         throw new Error(result?.message || "下载任务创建失败")
       }
@@ -465,15 +442,8 @@ export function MaterialFolderBrowser({
       setActionError(null)
       const body: Record<string, string> = { name: folderName.trim() }
       if (parentPath) body.parent_path = parentPath
-      const response = await fetch(`${API_BASE}/api/materials/user-upload/folders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      })
-      const result = await response.json()
-      if (!response.ok || !result?.success) {
+      const result = await apiPost<{ success: boolean; message?: string }>("/api/materials/user-upload/folders", body)
+      if (!result?.success) {
         throw new Error(result?.message || "创建目录失败")
       }
       await loadMaterialTree()
@@ -506,12 +476,8 @@ export function MaterialFolderBrowser({
       formData.append("folder_path", targetPath)
       formData.append("file", file)
 
-      const response = await fetch(`${API_BASE}/api/materials/user-upload/files`, {
-        method: "POST",
-        body: formData,
-      })
-      const result = await response.json()
-      if (!response.ok || !result?.success) {
+      const result = await apiPostForm<{ success: boolean; message?: string }>("/api/materials/user-upload/files", formData)
+      if (!result?.success) {
         throw new Error(result?.message || "上传文件失败")
       }
       await loadMaterialTree()
@@ -549,13 +515,8 @@ export function MaterialFolderBrowser({
     if (!relativePath) return
     if (!window.confirm("确定要删除此项吗？")) return
     try {
-      const response = await fetch(`${API_BASE}/api/materials/delete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paths: [relativePath] }),
-      })
-      const result = await response.json()
-      if (!response.ok || !result?.success) {
+      const result = await apiPost<{ success: boolean; message?: string }>("/api/materials/delete", { paths: [relativePath] })
+      if (!result?.success) {
         throw new Error(result?.message || "删除失败")
       }
       await loadMaterialTree()
